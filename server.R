@@ -80,10 +80,10 @@ server <- function(input, output, session) {
                                                                                ifelse(pChem>=0.67 & pHab>=0.67, "Stressed by low levels of chemistry or habitat degradation",
                                                                                       "XXXXX"))))
                                                ),
-        StreamHealthIndex = ifelse(BiologicalCondition=="Healthy" & OverallStressCondition=="Low stress","Healthy and unstressed",
-                                              ifelse(BiologicalCondition=="Healthy" & OverallStressCondition!="Low stress","Healthy and resilient",
-                                                     ifelse(BiologicalCondition!="Healthy" & OverallStressCondition=="Low stress","Impacted by unknown stress",
-                                                            ifelse(BiologicalCondition!="Healthy" & OverallStressCondition!="Low stress","Impacted and stressed",
+        StreamHealthIndex = ifelse(BiologicalCondition=="Healthy" & OverallStressCondition=="Low","Healthy and unstressed",
+                                              ifelse(BiologicalCondition=="Healthy" & OverallStressCondition!="Low","Healthy and resilient",
+                                                     ifelse(BiologicalCondition!="Healthy" & OverallStressCondition=="Low","Impacted by unknown stress",
+                                                            ifelse(BiologicalCondition!="Healthy" & OverallStressCondition!="Low","Impacted and stressed",
                                                                    "XXXXX")))
                                    )
       )
