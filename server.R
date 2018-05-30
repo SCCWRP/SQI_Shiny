@@ -8,10 +8,10 @@ load(file = 'data/hab.rf.wp.Rdata')
 load(file = 'data/wq.rf.wp.Rdata')
 
 # plot data
-len.x<-20
+len.x<-25
 plot.dat.chem<-expand.grid(
-  TN2=seq(from=0,to=5, length.out=len.x*2.5),
-  TP=seq(from=0,to=2, length.out=len.x*2.5),
+  TN2=seq(from=0,to=1.5, length.out=len.x*2.5),
+  TP=seq(from=0,to=1, length.out=len.x*2.5),
   Cond=seq(from=0,to=2000, length.out=len.x*2.5))
 
 plot.dat.chem$pChem<-predict(wq.rf.wp, newdata=plot.dat.chem, type="prob")[,2]
@@ -45,41 +45,62 @@ server <- function(input, output, session) {
     
     mydf.prediction <- toprd()
     
+    # probability of low stress, chem, hab, and overall
     mydf.prediction$pChem<-predict(wq.rf.wp, newdata=mydf.prediction, type="prob")[,2]
     mydf.prediction$pHab<-predict(hab.rf.wp, newdata=mydf.prediction, type="prob")[,2]
     mydf.prediction$pChemHab<-mydf.prediction$pChem*mydf.prediction$pHab
     
-    mydf.prediction$BiologicalCondition<-ifelse(mydf.prediction$CSCI>=0.79 & mydf.prediction$ASCI>=60,"Healthy",
-                                                ifelse(mydf.prediction$CSCI<0.79 & mydf.prediction$ASCI<60,"Impacted for BMI and algae",
-                                                       ifelse(mydf.prediction$CSCI<0.79 & mydf.prediction$ASCI>=60,"Impacted for BMI",
-                                                              ifelse(mydf.prediction$CSCI>=0.79 & mydf.prediction$ASCI<60,"Impacted for algae", "XXXXX"
-                                                              ))))
-    mydf.prediction$WaterChemistryCondition<-ifelse(mydf.prediction$pChem>=0.67,"Low stress",ifelse(mydf.prediction$pChem>=0.33,"Moderate stress","Severe stress"))
-    mydf.prediction$HabitatCondition<-ifelse(mydf.prediction$pHab>=0.67,"Low stress",ifelse(mydf.prediction$pHab>=0.33,"Moderate stress","Severe stress"))
-    mydf.prediction$OverallStressCondition<-ifelse(mydf.prediction$pChemHab>=0.67,"Low stress",ifelse(mydf.prediction$pChemHab>=0.33,"Moderate stress","Severe stress"))
-    mydf.prediction$OverallStressCondition_detail<-ifelse(mydf.prediction$pChemHab>=0.67,"Low stress",
-                                                          ifelse(mydf.prediction$pChemHab<0.67 & mydf.prediction$pHab<0.67, "Stressed by chemistry and habitat degradation",
-                                                                 ifelse(mydf.prediction$pChemHab<0.67 & mydf.prediction$pHab>=0.67, "Stressed by chemistry degradation",
-                                                                        ifelse(mydf.prediction$pChemHab>=0.67 & mydf.prediction$pHab<0.67, "Stressed by habitat degradation",
-                                                                               ifelse(mydf.prediction$pChemHab>=0.67 & mydf.prediction$pHab>=0.67, "Stressed by low levels of chemistry or habitat degradation",
-                                                                                      "XXXXX")))))
-    
-    mydf.prediction$StreamHealthIndex<-ifelse(mydf.prediction$BiologicalCondition=="Healthy" & mydf.prediction$OverallStressCondition=="Low stress","Healthy and unstressed",
-                                              ifelse(mydf.prediction$BiologicalCondition=="Healthy" & mydf.prediction$OverallStressCondition!="Low stress","Healthy and resilient",
-                                                     ifelse(mydf.prediction$BiologicalCondition!="Healthy" & mydf.prediction$OverallStressCondition=="Low stress","Impacted by unknown stress",
-                                                            ifelse(mydf.prediction$BiologicalCondition!="Healthy" & mydf.prediction$OverallStressCondition!="Low stress","Impacted and stressed",
-                                                                   "XXXXX"))))
+    mydf.prediction <- mydf.prediction %>% 
+      mutate(
+        BiologicalCondition = ifelse(CSCI>=0.79 & ASCI>=60,"Healthy",
+                                     ifelse(CSCI<0.79 & ASCI<60,"Impacted for BMI and algae",
+                                            ifelse(CSCI<0.79 & ASCI>=60,"Impacted for BMI",
+                                                   ifelse(CSCI>=0.79 & ASCI<60,"Impacted for algae", "XXXXX"
+                                                   )))
+                                     ),
+        WaterChemistryCondition = cut(pChem, 
+                                      breaks = c(-Inf, 0.33, 0.67, Inf), 
+                                      labels = c('Severe', 'Moderate', 'Low'),
+                                      right = F
+                                      ),
+        HabitatCondition = cut(pHab, 
+                               breaks = c(-Inf, 0.67, Inf), 
+                               labels = c('Severe', 'Low'),
+                               right = F
+                               ),
+        OverallStressCondition = cut(pChemHab, 
+                                     breaks = c(-Inf, 0.33, 0.67, Inf), 
+                                     labels = c('Severe', 'Moderate', 'Low'),
+                                     right = F
+                                     ),
+        OverallStressCondition_detail = ifelse(pChemHab>=0.67,"Low stress",
+                                                          ifelse(pChem<0.67 & pHab<0.67, "Stressed by chemistry and habitat degradation",
+                                                                 ifelse(pChem<0.67 & pHab>=0.67, "Stressed by chemistry degradation",
+                                                                        ifelse(pChem>=0.67 & pHab<0.67, "Stressed by habitat degradation",
+                                                                               ifelse(pChem>=0.67 & pHab>=0.67, "Stressed by low levels of chemistry or habitat degradation",
+                                                                                      "XXXXX"))))
+                                               ),
+        StreamHealthIndex = ifelse(BiologicalCondition=="Healthy" & OverallStressCondition=="Low stress","Healthy and unstressed",
+                                              ifelse(BiologicalCondition=="Healthy" & OverallStressCondition!="Low stress","Healthy and resilient",
+                                                     ifelse(BiologicalCondition!="Healthy" & OverallStressCondition=="Low stress","Impacted by unknown stress",
+                                                            ifelse(BiologicalCondition!="Healthy" & OverallStressCondition!="Low stress","Impacted and stressed",
+                                                                   "XXXXX")))
+                                   )
+      )
   
     return(mydf.prediction)
     
   })
   
   # text output
-  output$overall <- renderText(paste0('Overall: ', cats()$StreamHealthIndex))
-  output$biolcon <- renderText(paste0('Biological condition: ', cats()$BiologicalCondition))
-  output$strscon <- renderText(paste0('Stress condition: ', cats()$OverallStressCondition))
-  output$strsdet <- renderText(paste0('Stress condition detail: ', cats()$OverallStressCondition_detail))
-
+  output$overall <- renderUI(HTML(paste0('<h4><i>Overall: </i>', cats()$StreamHealthIndex, '</h4>')))
+  output$biolcon <- renderUI(HTML(paste0('<h4><i>Biological condition: </i>', cats()$BiologicalCondition, '</h4>')))
+  output$strscon <- renderUI(HTML(paste0('<h4><i>Stress condition: </i>', cats()$OverallStressCondition, '</h4>')))
+  output$strsdet <- renderUI(HTML(paste0('<h4><i>Stress condition detail: </i>', cats()$OverallStressCondition_detail, '</h4>')))
+  output$pchemhab <- renderUI(HTML(paste0('<h4><i>Prob. of low  overall stress: </i>', round(100 * cats()$pChemHab), '%</h4>')))
+  output$pchem <- renderUI(HTML(paste0('<h4><i>Prob. of low chemistry stress: </i>', round(100 * cats()$pChem), '%</h4>')))
+  output$phab <- renderUI(HTML(paste0('<h4><i>Prob. of low habitat stress: </i>', round(100 * cats()$pHab), '%</h4>')))
+  
   # plots
   output$plos <- renderPlot({
     
@@ -102,7 +123,7 @@ server <- function(input, output, session) {
     p1 <- ggplot(data=plot.dat.chem_tntp, aes(x=TN2, y=TP))+
       geom_tile(aes(fill=pChem))+
       scale_fill_gradient2(low="#d7191c", mid="#ffffbf", high="#2c7bb6", midpoint=0.5)+
-      geom_point(data=my.pred.plot, shape=21, size = 4, fill="white")+
+      geom_point(data=my.pred.plot, shape=21, size = 5, fill="white")+
       theme_minimal(base_size = 14, base_family = 'serif') +
       xlab("Total N (mg/L)")+ ylab("Total P (mg/L)")+
       ggtitle(paste("Sp Cond at",mydf.prediction$Cond))
@@ -110,7 +131,7 @@ server <- function(input, output, session) {
     p2 <- ggplot(data=plot.dat.chem_tncond, aes(x=TN2, y=Cond))+
       geom_tile(aes(fill=pChem))+
       scale_fill_gradient2(low="#d7191c", mid="#ffffbf", high="#2c7bb6", midpoint=0.5)+
-      geom_point(data=my.pred.plot, shape=21, size = 4, fill="white")+
+      geom_point(data=my.pred.plot, shape=21, size = 5, fill="white")+
       theme_minimal(base_size = 14, base_family = 'serif') +
       xlab("Total N (mg/L)")+ ylab("Sp Cond (uS/cm)") + 
       ggtitle(paste("Total P at",mydf.prediction$TP))

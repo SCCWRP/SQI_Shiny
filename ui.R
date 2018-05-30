@@ -63,17 +63,16 @@ shinyUI(fluidPage(
   fluidRow(
    
     column(width = 12, h3('Stream Health Index')), 
-    column(width = 12, 
-           textOutput('overall')
+    column(width = 6, 
+           uiOutput('overall'), 
+           uiOutput('biolcon'), 
+           uiOutput('strscon'),
+           uiOutput('strsdet')
            ), 
-    column(width = 12, 
-           textOutput('biolcon')
-           ), 
-    column(width = 12, 
-           textOutput('strscon')
-           ), 
-    column(width = 12, 
-           textOutput('strsdet')
+    column(width = 6, 
+           uiOutput('pchemhab'),
+           uiOutput('pchem'), 
+           uiOutput('phab') 
            )
   ),
   
@@ -82,6 +81,8 @@ shinyUI(fluidPage(
     
     HTML('<p></p>'),
     column(width = 12, 
+           h3('Plots'),
+           h5('Selected values beyond those on the x and y axes are shown at the plot margins.'),
            plotOutput('plos')
            )
     
