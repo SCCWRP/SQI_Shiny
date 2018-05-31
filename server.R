@@ -7,14 +7,29 @@ library(gridExtra)
 load(file = 'data/hab.rf.wp.Rdata')
 load(file = 'data/wq.rf.wp.Rdata')
 
-# plot data
-len.x<-25
-plot.dat.chem<-expand.grid(
+# length values for sequence plot data
+len.x<-20
+
+# chem plot data
+plot.dat.chem <- crossing(
   TN2=seq(from=0,to=1.5, length.out=len.x*2.5),
   TP=seq(from=0,to=1, length.out=len.x*2.5),
-  Cond=seq(from=0,to=2000, length.out=len.x*2.5))
+  Cond=seq(from=0,to=2000, length.out=len.x*2.5)
+)
 
 plot.dat.chem$pChem<-predict(wq.rf.wp, newdata=plot.dat.chem, type="prob")[,2]
+
+# hab plot data
+plot.dat.hab<-expand.grid(
+  indexscore_cram=seq(from=24,to=100, length.out=len.x/2),
+  PCT_SAFN=seq(from=0,to=100, length.out=len.x/2),
+  H_AqHab=seq(from=0,to=2.5, length.out=len.x/2),
+  H_SubNat=seq(from=0,to=2.5, length.out=len.x/2),
+  Ev_FlowHab=seq(from=0,to=1, length.out=len.x/2),
+  XCMG=seq(from=0,to=264, length.out=len.x/2)
+)
+
+plot.dat.hab$pHab<-predict(hab.rf.wp, newdata=plot.dat.hab, type="prob")[,2]
 
 # server logic
 server <- function(input, output, session) {
@@ -101,42 +116,128 @@ server <- function(input, output, session) {
   output$pchem <- renderUI(HTML(paste0('<h4><i>Prob. of low chemistry stress: </i>', round(100 * cats()$pChem), '%</h4>')))
   output$phab <- renderUI(HTML(paste0('<h4><i>Prob. of low habitat stress: </i>', round(100 * cats()$pHab), '%</h4>')))
   
-  # plots
-  output$plos <- renderPlot({
+  # chemistry wq plots
+  output$plochem <- renderPlot({
     
     mydf.prediction <- cats()
     
-    #Select the subset of rows with similar conductivity
-    closest.cond<-plot.dat.chem$Cond[which.min(abs(plot.dat.chem$Cond - mydf.prediction$Cond))]
-    plot.dat.chem_tntp<-plot.dat.chem[which(plot.dat.chem$Cond==closest.cond),]
-    closest.tn<-plot.dat.chem$TN2[which.min(abs(plot.dat.chem$TN2 - mydf.prediction$TN2))]
-    plot.dat.chem_tpcond<-plot.dat.chem[which(plot.dat.chem$TN2==closest.tn),]
-    closest.tp<-plot.dat.chem$TP[which.min(abs(plot.dat.chem$TP - mydf.prediction$TP))]
-    plot.dat.chem_tncond<-plot.dat.chem[which(plot.dat.chem$TP==closest.tp),]
+    # names of variables to plot
+    plovrs <- c(input$chem1, input$chem2)
     
-    #TN-TP plot
+    # names of variables to hold constant
+    convrs <- names(plot.dat.chem)[!names(plot.dat.chem) %in% c(plovrs, 'pChem')]
+    
+    # selected conditional variables
+    selcon <- mydf.prediction[, convrs, drop = F] %>% 
+      gather('var', 'val')
+
+    # estimated conditional variables, closest values to sel
+    selconclo <- plot.dat.chem[, convrs, drop = F] %>% 
+      gather('var', 'val') %>% 
+      left_join(selcon, by = 'var') %>% 
+      mutate(minv = abs(val.x - val.y)) %>% 
+      group_by(var) %>% 
+      filter(minv == min(minv)) %>% 
+      unique %>% 
+      filter(!duplicated(var)) %>% 
+      select(var, val.x) %>% 
+      rename(val = val.x) %>% 
+      mutate(val = round(val, 5)) %>% 
+      unite('con', var, val, sep = ' == ') %>% 
+      unlist %>% 
+      paste(collapse = ' & ')
+    
+    # filtered chem data to plot
+    toplo <- plot.dat.chem %>% 
+      mutate_if(is.numeric, round, 5) %>% 
+      filter_(selconclo)
+
+    # actual selected values and prob est
     my.pred.plot<-mydf.prediction
-    my.pred.plot$TN2<-pmin(max(plot.dat.chem$TN2),my.pred.plot$TN2)#*1.01
-    my.pred.plot$TP<-pmin(max(plot.dat.chem$TP),my.pred.plot$TP)#*1.01
-    my.pred.plot$Cond<-pmin(max(plot.dat.chem$Cond),my.pred.plot$Cond)#*1.01
+    my.pred.plot$TN2<-pmin(max(plot.dat.chem$TN2),my.pred.plot$TN2)
+    my.pred.plot$TP<-pmin(max(plot.dat.chem$TP),my.pred.plot$TP)
+    my.pred.plot$Cond<-pmin(max(plot.dat.chem$Cond),my.pred.plot$Cond)
     
-    p1 <- ggplot(data=plot.dat.chem_tntp, aes(x=TN2, y=TP))+
+    # title
+    titlvl <- selcon %>% 
+      unite('con', var, val, sep = ' ') %>% 
+      unlist %>% 
+      paste(collapse = ', ')
+    
+    p1 <- ggplot(data = toplo, aes_string(x=plovrs[1], y=plovrs[2]))+
       geom_tile(aes(fill=pChem))+
       scale_fill_gradient2(low="#d7191c", mid="#ffffbf", high="#2c7bb6", midpoint=0.5)+
       geom_point(data=my.pred.plot, shape=21, size = 5, fill="white")+
       theme_minimal(base_size = 14, base_family = 'serif') +
-      xlab("Total N (mg/L)")+ ylab("Total P (mg/L)")+
-      ggtitle(paste("Sp Cond at",mydf.prediction$Cond))
+      scale_x_continuous(expand = c(0, 0)) +
+      scale_y_continuous(expand = c(0, 0)) +
+      ggtitle(paste0('Constant values: ', titlvl))
     
-    p2 <- ggplot(data=plot.dat.chem_tncond, aes(x=TN2, y=Cond))+
-      geom_tile(aes(fill=pChem))+
+    p1
+    
+  })
+  
+  # chemistry wq plots
+  output$plohab <- renderPlot({
+    
+    mydf.prediction <- cats()
+    
+    # names of variables to plot
+    plovrs <- c(input$hab1, input$hab2)
+    
+    # names of variables to hold constant
+    convrs <- names(plot.dat.hab)[!names(plot.dat.hab) %in% c(plovrs, 'pHab')]
+    
+    # selected conditional variables
+    selcon <- mydf.prediction[, convrs, drop = F] %>% 
+      gather('var', 'val')
+    
+    # estimated conditional variables, closest values to sel
+    selconclo <- plot.dat.hab[, convrs, drop = F] %>% 
+      gather('var', 'val') %>% 
+      left_join(selcon, by = 'var') %>% 
+      mutate(minv = abs(val.x - val.y)) %>% 
+      group_by(var) %>% 
+      filter(minv == min(minv)) %>% 
+      unique %>% 
+      filter(!duplicated(var)) %>% 
+      select(var, val.x) %>% 
+      rename(val = val.x) %>% 
+      mutate(val = round(val, 5)) %>% 
+      unite('con', var, val, sep = ' == ') %>% 
+      unlist %>% 
+      paste(collapse = ' & ')
+    
+    # filtered hab data to plot
+    toplo <- plot.dat.hab %>% 
+      mutate_if(is.numeric, round, 5) %>% 
+      filter_(selconclo)
+
+    # actual selected values and prob est
+    my.pred.plot<-mydf.prediction
+    my.pred.plot$indexscore_cram<-pmin(max(plot.dat.hab$indexscore_cram),my.pred.plot$indexscore_cram)
+    my.pred.plot$PCT_SAFN<-pmin(max(plot.dat.hab$PCT_SAFN),my.pred.plot$PCT_SAFN)
+    my.pred.plot$H_AqHab<-pmin(max(plot.dat.hab$H_AqHab),my.pred.plot$H_AqHab)
+    my.pred.plot$H_SubNat<-pmin(max(plot.dat.hab$H_SubNat),my.pred.plot$H_SubNat)
+    my.pred.plot$Ev_FlowHab<-pmin(max(plot.dat.hab$Ev_FlowHab),my.pred.plot$Ev_FlowHab)
+    my.pred.plot$XCMG<-pmin(max(plot.dat.hab$XCMG),my.pred.plot$XCMG)
+    
+    # title
+    titlvl <- selcon %>% 
+      unite('con', var, val, sep = ' ') %>% 
+      unlist %>% 
+      paste(collapse = ', ')
+    
+    p1 <- ggplot(data = toplo, aes_string(x=plovrs[1], y=plovrs[2]))+
+      geom_tile(aes(fill=pHab))+
       scale_fill_gradient2(low="#d7191c", mid="#ffffbf", high="#2c7bb6", midpoint=0.5)+
       geom_point(data=my.pred.plot, shape=21, size = 5, fill="white")+
       theme_minimal(base_size = 14, base_family = 'serif') +
-      xlab("Total N (mg/L)")+ ylab("Sp Cond (uS/cm)") + 
-      ggtitle(paste("Total P at",mydf.prediction$TP))
+      scale_x_continuous(expand = c(0, 0)) +
+      scale_y_continuous(expand = c(0, 0)) +
+      ggtitle(paste0('Constant values: ', titlvl))
     
-    grid.arrange(p1, p2, ncol = 2)
+    p1
     
   })
     

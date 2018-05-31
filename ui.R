@@ -82,12 +82,80 @@ shinyUI(fluidPage(
     HTML('<p></p>'),
     column(width = 12, 
            h3('Plots'),
-           h5('Selected values beyond those on the x and y axes are shown at the plot margins.'),
-           plotOutput('plos')
-           )
+           h5('Selected values beyond those on the x and y axes are shown at the plot margins.')
+           ),
+    
+    # chemistry plots
+    column(width = 6, 
+           
+           h5('x-axis chemistry variable'),
+           
+           # first chem input
+           selectInput("chem1", 
+             label = '', 
+             choices = list(
+               "Total Nitrogen" = "TN2",
+               "Total Phosphorus" = "TP",
+               "Conductivity" = "Cond"
+             ),
+             selected = "TN2"
+          ),
+    
+          h5('y-axis chemistry variable'),
+          
+          # second chem input
+          selectInput("chem2", 
+                      label = '', 
+                      choices = list(
+                        "Total Nitrogen" = "TN2",
+                        "Total Phosphorus" = "TP",
+                        "Conductivity" = "Cond"
+                      ),
+                      selected = "TP"
+          ),
+          plotOutput('plochem')
+        ),
+    
+    # habitat plots
+    column(width = 6, 
+           
+           h5('x-axis habitat variable'),
+           
+           # first hab input
+           selectInput("hab1", 
+                       label = '', 
+                       choices = list(
+                         "CRAM" = "indexscore_cram",
+                         "% sands and fines" = "PCT_SAFN",
+                         "SW diversity of aquatic habitats" = "H_AqHab",
+                         "SW diversity of streambed substrates" = "H_SubNat",
+                         "Evenness of flow habitat types" = "Ev_FlowHab",
+                         "Riparian veg cover" = "XCMG"
+                       ),
+                       selected = "indescore_cram"
+           ),
+           
+           h5('y-axis habitat variable'),
+           
+           # second hab input
+           selectInput("hab2", 
+                       label = '', 
+                       choices = list(
+                         "CRAM" = "indexscore_cram",
+                         "% sands and fines" = "PCT_SAFN",
+                         "SW diversity of aquatic habitats" = "H_AqHab",
+                         "SW diversity of streambed substrates" = "H_SubNat",
+                         "Evenness of flow habitat types" = "Ev_FlowHab",
+                         "Riparian veg cover" = "XCMG"
+                       ),
+                       selected = "PCT_SAFN"
+           ),
+           
+           plotOutput('plohab')
+    )
     
   )
-  
+
 ))
 
 
