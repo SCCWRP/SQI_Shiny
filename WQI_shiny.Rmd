@@ -13,10 +13,7 @@ library(tidyverse)
 library(randomForest)
 library(gridExtra)
 library(flexdashboard)
-
-# load rf models
-load(file = 'data/hab.rf.wp.Rdata')
-load(file = 'data/wq.rf.wp.Rdata')
+library(WQI)
 
 # length values for sequence plot data
 len.x<-20
@@ -28,7 +25,7 @@ plot.dat.chem <- crossing(
   Cond=seq(from=0,to=2000, length.out=len.x*2.5)
 )
 
-plot.dat.chem$pChem<-predict(wq.rf.wp, newdata=plot.dat.chem, type="prob")[,2]
+plot.dat.chem$pChem<-predict(wqrfwp, newdata=plot.dat.chem, type="prob")[,2]
 
 # hab plot data
 plot.dat.hab<-expand.grid(
@@ -40,7 +37,7 @@ plot.dat.hab<-expand.grid(
   XCMG=seq(from=0,to=264, length.out=len.x/2)
 )
 
-plot.dat.hab$pHab<-predict(hab.rf.wp, newdata=plot.dat.hab, type="prob")[,2]
+plot.dat.hab$pHab<-predict(habrfwp, newdata=plot.dat.hab, type="prob")[,2]
 ```
 
 ```{r reactives}
