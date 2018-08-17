@@ -17,6 +17,7 @@ library(flexdashboard)
 library(WQI)
 library(mapview)
 library(leaflet)
+library(sf)
 
 # source functions and data
 source("R/funcs.R")
@@ -49,31 +50,11 @@ plot.dat.hab$pHab<-predict(habrfwp, newdata=plot.dat.hab, type="prob")[,2]
 ```
 
 ```{r reactives}
-# values to predict
-toprd <- reactive({
-
-  out <- data.frame(
-    CSCI = input$csci,
-    ASCI = input$asci,
-    TN2 = input$tn,
-    TP = input$tp,
-    Cond = input$cond,
-    indexscore_cram = input$cram,
-    PCT_SAFN = input$safn,
-    H_AqHab = input$aqhab,
-    H_SubNat = input$subnat,
-    Ev_FlowHab = input$flowhab,
-    XCMG = input$veg
-  )
-
-  return(out)
-
-})
-
-# categories from predictions
+# selected site for results
 cats <- reactive({
 
-  if(is.null(selsit)) return()
+  if(is.null(selsit))
+    selsit <- '405M10596'
   
   out <- alldat %>% 
     filter(MasterID %in% selsit)
@@ -84,31 +65,82 @@ cats <- reactive({
 ```
 
 ```{r outputobj}
-##
-# gauge outputs
-output$pchemhab <- renderGauge({
-  
-    val <- round(100 * cats()$pChemHab, 1)
-    gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
-    ))
-             
-  })
-output$pchem <- renderGauge({
-  
-  val <- round(100 * cats()$pChem, 1)
-  gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
-  ))
-  
+output$map <- renderLeaflet({
+
+  # input
+  tomap <- input$tomap
+  cols <- getdsccol(alldat[[tomap]])
+  names(cols) <- NULL
+  names(alldat)[names(alldat) %in% tomap] <- 'toshw'
+
+  mapview(sheds, fill = F, label = sheds$SMC_Name, homebutton = F) %>% 
+    .@map %>% 
+    removeMouseCoordinates() %>%
+    addCircleMarkers(
+      data = alldat, 
+      layerId = ~MasterID,
+      stroke = TRUE,
+      color = 'black',
+      fill = TRUE,
+      fillColor = cols,
+      radius=5, 
+      weight = 1,
+      fillOpacity = 1,
+      label = ~paste0(MasterID, ': ', toshw)
+    )
+
 })
-output$phab <- renderGauge({
+
+# leaflet proxy for marker select
+map <- leafletProxy("map")
+
+# binding for marker select
+makeReactiveBinding('selsit')
+
+# the selection
+observeEvent(input$map_marker_click, {
+  selsit <<- input$map_marker_click$id
+})
+
+observeEvent(input$map_marker_click, {
+
+  tomap <- input$tomap
+  cols <- getdsccol(alldat[[tomap]])
+  names(cols) <- NULL
+  names(alldat)[names(alldat) %in% tomap] <- 'toshw'
   
-  val <- round(100 * cats()$pHab, 1)
-  gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
-  ))
+  # filter the pour points by selection
+  selsitplo <- alldat %>% 
+    filter(MasterID %in% selsit)
   
+  # clear markers on input select, add all points and selected point
+  map <- map %>% 
+    clearMarkers() %>% 
+    addCircleMarkers(
+      data = alldat, 
+      layerId = ~MasterID,
+      stroke = TRUE,
+      color = 'black',
+      fill = TRUE,
+      fillColor = cols,
+      radius=5, 
+      weight = 1,
+      fillOpacity = 1,
+      label = ~paste0(MasterID, ': ', toshw)
+    ) %>% 
+    addCircleMarkers(
+      data = selsitplo, 
+      layerId = ~MasterID,
+      stroke = TRUE,
+      color = 'black',
+      fill = TRUE,
+      fillColor = 'red',
+      radius=5, 
+      weight = 1,
+      fillOpacity = 1,
+      label = ~paste0(MasterID, ': ', toshw)
+    )
+      
 })
 
 ##
@@ -135,13 +167,109 @@ output$strsdet <- flexdashboard::renderValueBox({
   })
 
 ##
+# probability gauge outputs
+output$pchemhab <- renderGauge({
+  
+    val <- round(100 * cats()$pChemHab, 1)
+    gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
+     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
+    ))
+             
+  })
+output$pchem <- renderGauge({
+  
+  val <- round(100 * cats()$pChem, 1)
+  gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
+     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
+  ))
+  
+})
+output$phab <- renderGauge({
+  val <- round(100 * cats()$pHab, 1)
+  gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
+     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
+  ))
+  
+})
+
+##
+# detail gauge outputs
+output$csci <- renderGauge({
+  val <- round(cats()$CSCI, 1)
+  gauge(val, min = 0, max = 1.5, gaugeSectors(
+     danger = c(0, .79), warning = c(0.79, 1), success = c(1, 1.5))
+  )
+})
+output$asci <- renderGauge({
+  val <- round(cats()$ASCI, 1)
+  gauge(val, min = 0, max = 100, gaugeSectors(
+     danger = c(0, 33), warning = c(33, 66), success = c(66, 100))
+  )
+})
+output$tn <- renderGauge({
+  val <- round(cats()$TN2, 1)
+  gauge(val, min = 0, max = 34, gaugeSectors(
+     danger = c(22, 34), warning = c(11, 22), success = c(0, 11))
+  )
+})
+output$tp <- renderGauge({
+  val <- round(cats()$TP, 1)
+  gauge(val, min = 0, max = 4.5, gaugeSectors(
+     danger = c(3, 4.5), warning = c(1.5, 3), success = c(0, 1.5))
+  )
+})
+output$cond <- renderGauge({
+  val <- round(cats()$Cond, 1)
+  gauge(val, min = 0, max = 7050, gaugeSectors(
+     danger = c(4700, 7050), warning = c(2350, 4700), success = c(0, 2350))
+  )
+})
+output$cram <- renderGauge({
+  val <- round(cats()$indexscore_cram, 1)
+  gauge(val, min = 0, max = 100, gaugeSectors(
+     danger = c(0, 33), warning = c(33, 66), success = c(66, 100))
+  )
+})
+output$safn <- renderGauge({
+  val <- round(cats()$PCT_SAFN, 1)
+  gauge(val, min = 0, max = 100, gaugeSectors(
+     danger = c(0, 33), warning = c(33, 66), success = c(66, 100))
+  )
+})
+output$aqhab <- renderGauge({
+  val <- round(cats()$H_AqHab, 1)
+  gauge(val, min = 0, max = 2.6, gaugeSectors(
+     danger = c(0, .87), warning = c(0.87, 1.74), success = c(1.74, 2.6))
+  )
+})
+output$subnat <- renderGauge({
+  val <- round(cats()$H_SubNat, 1)
+  gauge(val, min = 0, max = 2.6, gaugeSectors(
+     danger = c(0, .87), warning = c(0.87, 1.74), success = c(1.74, 2.6))
+  )
+})
+output$flowhab <- renderGauge({
+  val <- round(cats()$Ev_FlowHab, 1)
+  gauge(val, min = 0, max = 1, gaugeSectors(
+     danger = c(0, .33), warning = c(0.33, 0.66), success = c(0.66, 1))
+  )
+})
+output$veg <- renderGauge({
+  val <- round(cats()$XCMG, 1)
+  gauge(val, min = 0, max = 300, gaugeSectors(
+     danger = c(0, 100), warning = c(100, 200), success = c(200, 300))
+  )
+})
+
+##
 # plots 
 
 # chemistry wq plots
 output$plochem <- renderPlot({
   
   mydf.prediction <- cats()
-  
+  st_geometry(mydf.prediction) <- NULL
+             
   # names of variables to plot
   plovrs <- c(input$chem1, input$chem2)
   
@@ -190,9 +318,13 @@ output$plochem <- renderPlot({
     scale_fill_gradient2(low="#d7191c", mid="#ffffbf", high="#2c7bb6", midpoint=0.5)+
     geom_point(data=my.pred.plot, shape=21, size = 5, fill="white")+
     theme_minimal(base_size = 14, base_family = 'serif') +
+    theme(
+      plot.title = element_text(size = 12), 
+      legend.position = 'top'
+      ) +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
-    ggtitle(paste0('Constant values: ', titlvl))
+    ggtitle(paste0('Constant values:\n\t ', titlvl))
   
   p1
   
@@ -202,6 +334,7 @@ output$plochem <- renderPlot({
 output$plohab <- renderPlot({
   
   mydf.prediction <- cats()
+  st_geometry(mydf.prediction) <- NULL
   
   # names of variables to plot
   plovrs <- c(input$hab1, input$hab2)
@@ -254,24 +387,21 @@ output$plohab <- renderPlot({
     scale_fill_gradient2(low="#d7191c", mid="#ffffbf", high="#2c7bb6", midpoint=0.5)+
     geom_point(data=my.pred.plot, shape=21, size = 5, fill="white")+
     theme_minimal(base_size = 14, base_family = 'serif') +
+    theme(
+      plot.title = element_text(size = 12), 
+      legend.position = 'top'
+      ) +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
-    ggtitle(paste0('Constant values: ', titlvl))
+    ggtitle(paste0('Constant values:\n\t ', titlvl))
   
   p1
   
 }, height = 450)
 ```
 
-Map
-=====================================
-
-Column {.sidebar}
------------------------------------------------------------------------
-
-Select the mapping option. 
-
-### Select input
+Sidebar {.sidebar data-width=700}
+===========================================================
 
 ```{r}
 selectInput('tomap', 'WQI output:', 
@@ -285,103 +415,17 @@ selectInput('tomap', 'WQI output:',
 )
 ```
 
-Selected site:
+Selected site: `r renderText({selsit})`
 
 ```{r}
-renderText({selsit})
+leafletOutput('map', height = 630)
 ```
 
-Row {data-height=500}
+Overview
+=====================================
+
+Column {data-width=500}
 ------------------------------------------------------------------------
-
-### View selection
-
-```{r}
-output$map <- renderLeaflet({
-
-  # input
-  tomap <- input$tomap
-  cols <- getdsccol(alldat[[tomap]])
-  names(cols) <- NULL
-  names(alldat)[names(alldat) %in% tomap] <- 'toshw'
-
-  mapview(sheds, fill = F, label = sheds$SMC_Name) %>% 
-    .@map %>% 
-    # removeMouseCoordinates() %>%
-    addCircleMarkers(
-      data = alldat, 
-      layerId = ~MasterID,
-      stroke = TRUE,
-      color = 'black',
-      fill = TRUE,
-      fillColor = cols,
-      radius=5, 
-      weight = 1,
-      fillOpacity = 1,
-      label = ~toshw
-    )
-
-})
-
-# leaflet proxy for marker select
-map <- leafletProxy("map")
-
-# binding for marker select
-makeReactiveBinding('selsit')
-
-# the selection
-observeEvent(input$map_marker_click, {
-  selsit <<- input$map_marker_click$id
-})
-
-observeEvent(input$map_marker_click, {
-  
-  if(is.null(selsit)) return()  
-
-  tomap <- input$tomap
-  cols <- getdsccol(alldat[[tomap]])
-  names(cols) <- NULL
-  names(alldat)[names(alldat) %in% tomap] <- 'toshw'
-  
-  # filter the pour points by selection
-  selsitplo <- alldat %>% 
-    filter(MasterID %in% selsit)
-  
-  # clear markers on input select, add all points and selected point
-  map <- map %>% 
-    clearMarkers() %>% 
-    addCircleMarkers(
-      data = alldat, 
-      layerId = ~MasterID,
-      stroke = TRUE,
-      color = 'black',
-      fill = TRUE,
-      fillColor = cols,
-      radius=5, 
-      weight = 1,
-      fillOpacity = 1,
-      label = ~toshw
-    ) %>% 
-    addCircleMarkers(
-      data = selsitplo, 
-      layerId = ~MasterID,
-      stroke = TRUE,
-      color = 'black',
-      fill = TRUE,
-      fillColor = 'red',
-      radius=5, 
-      weight = 1,
-      fillOpacity = 1,
-      label = ~toshw
-    )
-      
-})
-
-leafletOutput('map')
-```
-
-Column 
------------------------------
 
 ###  Overall
 
@@ -407,10 +451,7 @@ flexdashboard::valueBoxOutput('strscon')
 flexdashboard::valueBoxOutput('strsdet')
 ```
 
-Row {data-height=500}
------------------------------
-
-### Gauges
+### Probability of low stress
 
 ```{r}
  column(width = 12,
@@ -420,36 +461,42 @@ Row {data-height=500}
            )
 ```
 
-Inputs
+Details
 ===================================== 
 
-Row
+Column 
 -----------------------------------------------------------------------
 
 ### Biology
 
 ```{r}
-numericInput('csci', h5('CSCI score. Enter a number between 0 and ~1.4'), value = 0.45, min = 0, max = 1.5)
-numericInput('asci', h5('ASCI score (H20 for now). Enter a number between 0 and 100'), value = 25, min = 0, max = 100)
+ column(width = 12,
+                  shinydashboard::box(gaugeOutput('csci'), title = HTML('<h4><i>CSCI:</i></h4>'), width = 3),
+                  shinydashboard::box(gaugeOutput('asci'), title = HTML('<h4><i>ASCI:</i></h4>'), width = 3)
+ )
 ```
 
 ### Chemistry
 
-```{r }
-numericInput('tn', h5('Total N (mg/L). Enter a number greater than zero'), value = 10.1, min = 0) 
-numericInput('tp', h5('Total P (mg/L). Enter a number greater than zero'), value = 10.001, min = 0)    
-numericInput('cond', h5('Specific conductance (uS/cm). Enter a number greater than zero'), value = 450, min = 0)
+```{r}
+ column(width = 12,
+                  shinydashboard::box(gaugeOutput('tn'), title = HTML('<h4><i>Total nitrogen:</i></h4>'), width = 3),
+                  shinydashboard::box(gaugeOutput('tp'), title = HTML('<h4><i>Total phosphorus:</i></h4>'), width = 3),
+                  shinydashboard::box(gaugeOutput('cond'), title = HTML('<h4><i>Conductivity:</i></h4>'), width = 3)
+ )
 ```
 
 ### Habitat
 
 ```{r}
-numericInput('cram', h5('CRAM score. Enter a number between 0 and 100'), value = 75, min = 0, max = 100) 
-numericInput('safn', h5('% sands and fines. Enter a number between 0 and 100'), value = 35, min = 0, max = 100)    
-numericInput('aqhab', h5('SW diversity of aquatic habitats. Enter a number between 0 and ~2.5'), value = 1.5, min = 0, max = 2.6)    
-numericInput('subnat', h5('SW diversity of streambed substrate. Enter a number between 0 and ~2.5'), value = 1.9, min = 0, max = 2.6) 
-numericInput('flowhab', h5('Evenness of flow habitat types (e.g., riffles, pools). Enter a number between zero and 1'), value = 0.5, min = 0, max = 1)    
-numericInput('veg', h5('Riparian veg cover. Enter a number from 0 to ~265'), value = 200, min = 0, max = 300)
+ column(width = 12,
+                  shinydashboard::box(gaugeOutput('cram'), title = HTML('<h4><i>CRAM index score:<br></br></i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('safn'), title = HTML('<h4><i>% sands and fines:<br></br></i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('aqhab'), title = HTML('<h4><i>SW diversity of aquatic habitat:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('subnat'), title = HTML('<h4><i>SW diversity of streambed substrate:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('flowhab'), title = HTML('<h4><i>Evenness of flow habitat types:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('veg'), title = HTML('<h4><i>Riparian veg. cover:<br></br></i></h4>'), width = 2)
+ )
 ```
 
 Plots
@@ -464,19 +511,16 @@ Rows
 # plot outputs
 fluidRow(
   
-  HTML('<p></p>'),
   column(width = 12, 
          h5('Selected values beyond those on the x and y axes are shown at the plot margins.')
          ),
   
   # chemistry plots
   column(width = 6, 
-         
-         h5('x-axis chemistry variable'),
-         
+
          # first chem input
          selectInput("chem1", 
-           label = '', 
+           label = 'x-axis chemistry variable', 
            choices = list(
              "Total Nitrogen" = "TN2",
              "Total Phosphorus" = "TP",
@@ -485,11 +529,9 @@ fluidRow(
            selected = "TN2"
         ),
   
-        h5('y-axis chemistry variable'),
-        
         # second chem input
         selectInput("chem2", 
-                    label = '', 
+                    label = 'y-axis chemistry variable', 
                     choices = list(
                       "Total Nitrogen" = "TN2",
                       "Total Phosphorus" = "TP",
@@ -503,11 +545,9 @@ fluidRow(
   # habitat plots
   column(width = 6, 
          
-         h5('x-axis habitat variable'),
-         
          # first hab input
          selectInput("hab1", 
-                     label = '', 
+                     label = 'x-axis habitat variable', 
                      choices = list(
                        "CRAM" = "indexscore_cram",
                        "% sands and fines" = "PCT_SAFN",
@@ -518,12 +558,10 @@ fluidRow(
                      ),
                      selected = "indescore_cram"
          ),
-         
-         h5('y-axis habitat variable'),
-         
+
          # second hab input
          selectInput("hab2", 
-                     label = '', 
+                     label = 'y-axis habitat variable', 
                      choices = list(
                        "CRAM" = "indexscore_cram",
                        "% sands and fines" = "PCT_SAFN",
