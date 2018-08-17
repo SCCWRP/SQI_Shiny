@@ -3,7 +3,7 @@ getdsccol <- function(dscin){
   
   if(is.factor(dscin))
     stop('dscin must be character')
-  
+
   # relative severity levels
   l1 <- 'Green'
   l2 <- 'LightGreen'
@@ -36,9 +36,12 @@ getdsccol <- function(dscin){
     'Stressed by low levels of chemistry or habitat degradation' = l1
   )
   
+  # get all
   allcol <- c(overallcol, biologscol, strsovrcol, strsdetcol)
+  allcol <- unlist(allcol)
   
-  out <- allcol[[dscin]]
+  # select colors
+  out <- allcol[dscin]
   
   return(out)
   

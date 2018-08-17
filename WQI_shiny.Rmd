@@ -1,19 +1,27 @@
 ---
 title: "WQI Shiny"
-output: flexdashboard::flex_dashboard
+output: 
+  flexdashboard::flex_dashboard
 runtime: shiny
 ---
 
 ```{r global, include = FALSE, message = F, warning = F}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, echo = F)
 
-source('R/funcs.R')
+# packages
 library(shiny)
 library(tidyverse)
 library(randomForest)
 library(gridExtra)
 library(flexdashboard)
 library(WQI)
+library(mapview)
+library(leaflet)
+
+# source functions and data
+source("R/funcs.R")
+data(alldat)
+data(sheds)
 
 # length values for sequence plot data
 len.x<-20
@@ -63,7 +71,16 @@ toprd <- reactive({
 })
 
 # categories from predictions
-cats <- reactive({wqi(toprd())})
+cats <- reactive({
+
+  if(is.null(selsit)) return()
+  
+  out <- alldat %>% 
+    filter(MasterID %in% selsit)
+  
+  return(out)
+  
+  })
 ```
 
 ```{r outputobj}
@@ -99,22 +116,22 @@ output$phab <- renderGauge({
 output$overall <- flexdashboard::renderValueBox({
   txtin <- cats()$StreamHealthIndex
   colin <- getdsccol(txtin)
-  flexdashboard::valueBox(txtin, icon = 'glyphicon-plus', color = colin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-plus', color = colin)
   })
 output$biolcon <- flexdashboard::renderValueBox({
   txtin <- cats()$BiologicalCondition
   colin <- getdsccol(txtin)
-  flexdashboard::valueBox(txtin, icon = 'glyphicon-leaf', color = colin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-leaf', color = colin)
   })
 output$strscon <- flexdashboard::renderValueBox({
   txtin <- cats()$OverallStressCondition
   colin <- getdsccol(txtin)
-  flexdashboard::valueBox(txtin, icon = 'glyphicon-flash', color = colin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-flash', color = colin)
   })
 output$strsdet <- flexdashboard::renderValueBox({
   txtin <- cats()$OverallStressCondition_detail
   colin <- getdsccol(txtin)
-  flexdashboard::valueBox(txtin, icon = 'glyphicon-flash', color = colin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-flash', color = colin)
   })
 
 ##
@@ -246,46 +263,122 @@ output$plohab <- renderPlot({
 }, height = 450)
 ```
 
-Inputs
-===================================== 
+Map
+=====================================
 
-Column {data-width=400}
+Column {.sidebar}
 -----------------------------------------------------------------------
 
-### Biology
+Select the mapping option. 
+
+### Select input
 
 ```{r}
-numericInput('csci', h5('CSCI score. Enter a number between 0 and ~1.4'), value = 0.45, min = 0, max = 1.5)
-numericInput('asci', h5('ASCI score (H20 for now). Enter a number between 0 and 100'), value = 25, min = 0, max = 100)
+selectInput('tomap', 'WQI output:', 
+  choices = list(
+    'Overall' = 'StreamHealthIndex', 
+    'Biological condition' = 'BiologicalCondition',
+    'Stress condition' = 'OverallStressCondition', 
+    'Stress condition detail' = 'OverallStressCondition_detail'
+  ), 
+  selected = 'Overall'
+)
 ```
 
-Column {data-width=400}
------------------------------------------------------------------------
-
-### Chemistry
-
-```{r }
-numericInput('tn', h5('Total N (mg/L). Enter a number greater than zero'), value = 10.1, min = 0) 
-numericInput('tp', h5('Total P (mg/L). Enter a number greater than zero'), value = 10.001, min = 0)    
-numericInput('cond', h5('Specific conductance (uS/cm). Enter a number greater than zero'), value = 450, min = 0)
-```
-
-Column {data-width=400}
------------------------------------------------------------------------
-
-### Habitat
+Selected site:
 
 ```{r}
-numericInput('cram', h5('CRAM score. Enter a number between 0 and 100'), value = 75, min = 0, max = 100) 
-numericInput('safn', h5('% sands and fines. Enter a number between 0 and 100'), value = 35, min = 0, max = 100)    
-numericInput('aqhab', h5('SW diversity of aquatic habitats. Enter a number between 0 and ~2.5'), value = 1.5, min = 0, max = 2.6)    
-numericInput('subnat', h5('SW diversity of streambed substrate. Enter a number between 0 and ~2.5'), value = 1.9, min = 0, max = 2.6) 
-numericInput('flowhab', h5('Evenness of flow habitat types (e.g., riffles, pools). Enter a number between zero and 1'), value = 0.5, min = 0, max = 1)    
-numericInput('veg', h5('Riparian veg cover. Enter a number from 0 to ~265'), value = 200, min = 0, max = 300)
+renderText({selsit})
 ```
 
-Report 
-===================================== 
+Row {data-height=500}
+------------------------------------------------------------------------
+
+### View selection
+
+```{r}
+output$map <- renderLeaflet({
+
+  # input
+  tomap <- input$tomap
+  cols <- getdsccol(alldat[[tomap]])
+  names(cols) <- NULL
+  names(alldat)[names(alldat) %in% tomap] <- 'toshw'
+
+  mapview(sheds, fill = F, label = sheds$SMC_Name) %>% 
+    .@map %>% 
+    # removeMouseCoordinates() %>%
+    addCircleMarkers(
+      data = alldat, 
+      layerId = ~MasterID,
+      stroke = TRUE,
+      color = 'black',
+      fill = TRUE,
+      fillColor = cols,
+      radius=5, 
+      weight = 1,
+      fillOpacity = 1,
+      label = ~toshw
+    )
+
+})
+
+# leaflet proxy for marker select
+map <- leafletProxy("map")
+
+# binding for marker select
+makeReactiveBinding('selsit')
+
+# the selection
+observeEvent(input$map_marker_click, {
+  selsit <<- input$map_marker_click$id
+})
+
+observeEvent(input$map_marker_click, {
+  
+  if(is.null(selsit)) return()  
+
+  tomap <- input$tomap
+  cols <- getdsccol(alldat[[tomap]])
+  names(cols) <- NULL
+  names(alldat)[names(alldat) %in% tomap] <- 'toshw'
+  
+  # filter the pour points by selection
+  selsitplo <- alldat %>% 
+    filter(MasterID %in% selsit)
+  
+  # clear markers on input select, add all points and selected point
+  map <- map %>% 
+    clearMarkers() %>% 
+    addCircleMarkers(
+      data = alldat, 
+      layerId = ~MasterID,
+      stroke = TRUE,
+      color = 'black',
+      fill = TRUE,
+      fillColor = cols,
+      radius=5, 
+      weight = 1,
+      fillOpacity = 1,
+      label = ~toshw
+    ) %>% 
+    addCircleMarkers(
+      data = selsitplo, 
+      layerId = ~MasterID,
+      stroke = TRUE,
+      color = 'black',
+      fill = TRUE,
+      fillColor = 'red',
+      radius=5, 
+      weight = 1,
+      fillOpacity = 1,
+      label = ~toshw
+    )
+      
+})
+
+leafletOutput('map')
+```
 
 Column 
 -----------------------------
@@ -295,7 +388,6 @@ Column
 ```{r}
 flexdashboard::valueBoxOutput('overall')
 ```
-
 
 ### Biological condition
 
@@ -315,6 +407,9 @@ flexdashboard::valueBoxOutput('strscon')
 flexdashboard::valueBoxOutput('strsdet')
 ```
 
+Row {data-height=500}
+-----------------------------
+
 ### Gauges
 
 ```{r}
@@ -323,6 +418,38 @@ flexdashboard::valueBoxOutput('strsdet')
                   shinydashboard::box(gaugeOutput('pchem'), title = HTML('<h4><i>Prob. of low chemistry stress:</i></h4>'), width = 4),
                   shinydashboard::box(gaugeOutput('phab'), title = HTML('<h4><i>Prob. of low habitat stress:</i></h4>'), width = 4)
            )
+```
+
+Inputs
+===================================== 
+
+Row
+-----------------------------------------------------------------------
+
+### Biology
+
+```{r}
+numericInput('csci', h5('CSCI score. Enter a number between 0 and ~1.4'), value = 0.45, min = 0, max = 1.5)
+numericInput('asci', h5('ASCI score (H20 for now). Enter a number between 0 and 100'), value = 25, min = 0, max = 100)
+```
+
+### Chemistry
+
+```{r }
+numericInput('tn', h5('Total N (mg/L). Enter a number greater than zero'), value = 10.1, min = 0) 
+numericInput('tp', h5('Total P (mg/L). Enter a number greater than zero'), value = 10.001, min = 0)    
+numericInput('cond', h5('Specific conductance (uS/cm). Enter a number greater than zero'), value = 450, min = 0)
+```
+
+### Habitat
+
+```{r}
+numericInput('cram', h5('CRAM score. Enter a number between 0 and 100'), value = 75, min = 0, max = 100) 
+numericInput('safn', h5('% sands and fines. Enter a number between 0 and 100'), value = 35, min = 0, max = 100)    
+numericInput('aqhab', h5('SW diversity of aquatic habitats. Enter a number between 0 and ~2.5'), value = 1.5, min = 0, max = 2.6)    
+numericInput('subnat', h5('SW diversity of streambed substrate. Enter a number between 0 and ~2.5'), value = 1.9, min = 0, max = 2.6) 
+numericInput('flowhab', h5('Evenness of flow habitat types (e.g., riffles, pools). Enter a number between zero and 1'), value = 0.5, min = 0, max = 1)    
+numericInput('veg', h5('Riparian veg cover. Enter a number from 0 to ~265'), value = 200, min = 0, max = 300)
 ```
 
 Plots
