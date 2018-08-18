@@ -21,7 +21,7 @@ library(sf)
 
 # source functions and data
 source("R/funcs.R")
-data(alldat)
+data(alldatavg)
 data(sheds)
 
 # length values for sequence plot data
@@ -56,7 +56,8 @@ cats <- reactive({
   if(is.null(selsit))
     selsit <- '405M10596'
   
-  out <- alldat %>% 
+  # subset
+  out <- alldatavg %>% 
     filter(MasterID %in% selsit)
   
   return(out)
@@ -69,15 +70,15 @@ output$map <- renderLeaflet({
 
   # input
   tomap <- input$tomap
-  cols <- getdsccol(alldat[[tomap]])
+  cols <- getdsccol(alldatavg[[tomap]])
   names(cols) <- NULL
-  names(alldat)[names(alldat) %in% tomap] <- 'toshw'
+  names(alldatavg)[names(alldatavg) %in% tomap] <- 'toshw'
 
   mapview(sheds, fill = F, label = sheds$SMC_Name, homebutton = F) %>% 
     .@map %>% 
     removeMouseCoordinates() %>%
     addCircleMarkers(
-      data = alldat, 
+      data = alldatavg, 
       layerId = ~MasterID,
       stroke = TRUE,
       color = 'black',
@@ -105,19 +106,21 @@ observeEvent(input$map_marker_click, {
 observeEvent(input$map_marker_click, {
 
   tomap <- input$tomap
-  cols <- getdsccol(alldat[[tomap]])
+  cols <- getdsccol(alldatavg[[tomap]])
   names(cols) <- NULL
-  names(alldat)[names(alldat) %in% tomap] <- 'toshw'
+  names(alldatavg)[names(alldatavg) %in% tomap] <- 'toshw'
   
   # filter the pour points by selection
-  selsitplo <- alldat %>% 
+  selsitplo <- alldatavg %>% 
     filter(MasterID %in% selsit)
+  selsitplocol <- getdsccol(selsitplo[['toshw']])
+  names(selsitplocol) <- NULL
   
   # clear markers on input select, add all points and selected point
   map <- map %>% 
     clearMarkers() %>% 
     addCircleMarkers(
-      data = alldat, 
+      data = alldatavg, 
       layerId = ~MasterID,
       stroke = TRUE,
       color = 'black',
@@ -132,11 +135,11 @@ observeEvent(input$map_marker_click, {
       data = selsitplo, 
       layerId = ~MasterID,
       stroke = TRUE,
-      color = 'black',
+      color = 'red',
+      fillColor = selsitplocol,
       fill = TRUE,
-      fillColor = 'red',
-      radius=5, 
-      weight = 1,
+      radius=8, 
+      weight = 4,
       fillOpacity = 1,
       label = ~paste0(MasterID, ': ', toshw)
     )
@@ -269,7 +272,7 @@ output$plochem <- renderPlot({
   
   mydf.prediction <- cats()
   st_geometry(mydf.prediction) <- NULL
-             
+  
   # names of variables to plot
   plovrs <- c(input$chem1, input$chem2)
   
@@ -418,7 +421,7 @@ selectInput('tomap', 'WQI output:',
 Selected site: `r renderText({selsit})`
 
 ```{r}
-leafletOutput('map', height = 630)
+leafletOutput('map', height = 620)
 ```
 
 Overview
