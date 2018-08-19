@@ -7,8 +7,8 @@ getdsccol <- function(dscin){
   # relative severity levels
   l1 <- 'Green'
   l2 <- 'LightGreen'
-  l3 <- 'LightBlue'
-  l4 <- 'RoyalBlue'
+  l3 <- 'LightPink'
+  l4 <- 'Crimson'
   
   #  color categories
   overallcol <- list(

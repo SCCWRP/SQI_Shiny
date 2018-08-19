@@ -76,7 +76,7 @@ output$map <- renderLeaflet({
 
   mapview(sheds, fill = F, label = sheds$SMC_Name, homebutton = F) %>% 
     .@map %>% 
-    removeMouseCoordinates() %>%
+    # removeMouseCoordinates() %>%
     addCircleMarkers(
       data = alldatavg, 
       layerId = ~MasterID,
@@ -135,11 +135,11 @@ observeEvent(input$map_marker_click, {
       data = selsitplo, 
       layerId = ~MasterID,
       stroke = TRUE,
-      color = 'red',
+      color = 'black',
       fillColor = selsitplocol,
       fill = TRUE,
-      radius=8, 
-      weight = 4,
+      radius=10, 
+      weight = 6,
       fillOpacity = 1,
       label = ~paste0(MasterID, ': ', toshw)
     )
@@ -175,7 +175,7 @@ output$pchemhab <- renderGauge({
   
     val <- round(100 * cats()$pChemHab, 1)
     gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
+     success = c(0, 33), warning = c(33, 66), danger = c(66, 100)
     ))
              
   })
@@ -183,14 +183,14 @@ output$pchem <- renderGauge({
   
   val <- round(100 * cats()$pChem, 1)
   gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
+     success = c(0, 33), warning = c(33, 66), danger = c(66, 100)
   ))
   
 })
 output$phab <- renderGauge({
   val <- round(100 * cats()$pHab, 1)
   gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(67, 100), warning = c(33, 66), danger = c(0, 32)
+     success = c(0, 33), warning = c(33, 66), danger = c(66, 100)
   ))
   
 })
@@ -314,7 +314,13 @@ output$plochem <- renderPlot({
   titlvl <- selcon %>% 
     unite('con', var, val, sep = ' ') %>% 
     unlist %>% 
-    paste(collapse = ', ')
+    paste(collapse = ', ') %>% 
+    paste0('Constant values:\n\t ', .)
+  selcvl <- mydf.prediction[plovrs] %>% 
+    paste(names(.), .) %>% 
+    paste(collapse = ', ') %>% 
+    paste0('Selected values:\n\t ', .)
+  titlvl <- paste0(selcvl, '\n\n', titlvl)
   
   p1 <- ggplot(data = toplo, aes_string(x=plovrs[1], y=plovrs[2]))+
     geom_tile(aes(fill=pChem))+
@@ -327,11 +333,11 @@ output$plochem <- renderPlot({
       ) +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
-    ggtitle(paste0('Constant values:\n\t ', titlvl))
+    ggtitle(titlvl)
   
   p1
   
-}, height = 450)
+}, height = 500)
 
 # chemistry wq plots
 output$plohab <- renderPlot({
@@ -383,7 +389,13 @@ output$plohab <- renderPlot({
   titlvl <- selcon %>% 
     unite('con', var, val, sep = ' ') %>% 
     unlist %>% 
-    paste(collapse = ', ')
+    paste(collapse = ', ') %>% 
+    paste0('Constant values:\n\t ', .)
+  selcvl <- mydf.prediction[plovrs] %>% 
+    paste(names(.), .) %>% 
+    paste(collapse = ', ') %>% 
+    paste0('Selected values:\n\t ', .)
+  titlvl <- paste0(selcvl, '\n\n', titlvl)
   
   p1 <- ggplot(data = toplo, aes_string(x=plovrs[1], y=plovrs[2]))+
     geom_tile(aes(fill=pHab))+
@@ -396,11 +408,11 @@ output$plohab <- renderPlot({
       ) +
     scale_x_continuous(expand = c(0, 0)) +
     scale_y_continuous(expand = c(0, 0)) +
-    ggtitle(paste0('Constant values:\n\t ', titlvl))
+    ggtitle(titlvl)
   
   p1
   
-}, height = 450)
+}, height = 500)
 ```
 
 Sidebar {.sidebar data-width=700}
@@ -454,13 +466,13 @@ flexdashboard::valueBoxOutput('strscon')
 flexdashboard::valueBoxOutput('strsdet')
 ```
 
-### Probability of low stress
+### Probability of stress
 
 ```{r}
  column(width = 12,
-                  shinydashboard::box(gaugeOutput('pchemhab'), title = HTML('<h4><i>Prob. of low overall stress:</i></h4>'), width = 4),
-                  shinydashboard::box(gaugeOutput('pchem'), title = HTML('<h4><i>Prob. of low chemistry stress:</i></h4>'), width = 4),
-                  shinydashboard::box(gaugeOutput('phab'), title = HTML('<h4><i>Prob. of low habitat stress:</i></h4>'), width = 4)
+                  shinydashboard::box(gaugeOutput('pchemhab'), title = HTML('<h4><i>Prob. of overall stress:</i></h4>'), width = 4),
+                  shinydashboard::box(gaugeOutput('pchem'), title = HTML('<h4><i>Prob. of chemistry stress:</i></h4>'), width = 4),
+                  shinydashboard::box(gaugeOutput('phab'), title = HTML('<h4><i>Prob. of habitat stress:</i></h4>'), width = 4)
            )
 ```
 
@@ -502,13 +514,13 @@ Column
  )
 ```
 
-Plots
+Scenario exploration
 ===================================================
 
 Rows
 ------------------------
 
-### Plots
+### Scenario exploration
 
 ```{r}
 # plot outputs
