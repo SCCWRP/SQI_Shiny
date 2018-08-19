@@ -1,14 +1,16 @@
 # descriptor colors for wqi
-getdsccol <- function(dscin){
+getdsccol <- function(dscin = NULL, palout = F){
   
   if(is.factor(dscin))
     stop('dscin must be character')
 
   # relative severity levels
-  l1 <- 'Green'
-  l2 <- 'LightGreen'
-  l3 <- 'LightPink'
-  l4 <- 'Crimson'
+  l1 <- '#008000' #'Green'
+  l2 <- '#90EE90' #'LightGreen'
+  l3 <- '#FFB6C1' #'LightPink'
+  l4 <- '#DC143C' #'Crimson'
+  
+  if(palout) return(c(l1, l2, l3, l4))
   
   #  color categories
   overallcol <- list(
