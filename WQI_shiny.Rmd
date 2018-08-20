@@ -76,7 +76,7 @@ output$map <- renderLeaflet({
 
   mapview(sheds, fill = F, label = sheds$SMC_Name, homebutton = F) %>% 
     .@map %>% 
-    # removeMouseCoordinates() %>%
+    removeMouseCoordinates() %>%
     addCircleMarkers(
       data = alldatavg, 
       layerId = ~MasterID,

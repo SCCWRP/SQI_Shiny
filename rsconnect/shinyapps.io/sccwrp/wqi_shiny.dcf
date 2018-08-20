@@ -2,7 +2,8 @@ name: wqi_shiny
 title:
 account: sccwrp
 server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
 appId: 400719
-bundleId: 1543012
+bundleId: 1544712
 url: https://sccwrp.shinyapps.io/wqi_shiny/
-when: 1534705981.1369
+when: 1534782139.71301
