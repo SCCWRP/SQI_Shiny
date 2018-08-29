@@ -15,6 +15,7 @@ library(randomForest)
 library(gridExtra)
 library(flexdashboard)
 library(WQI)
+# devtools::load_all('../WQI/.')
 library(mapview)
 library(leaflet)
 library(sf)
@@ -270,147 +271,34 @@ output$veg <- renderGauge({
 # chemistry wq plots
 output$plochem <- renderPlot({
   
-  mydf.prediction <- cats()
-  st_geometry(mydf.prediction) <- NULL
-  
-  # names of variables to plot
+  # inputs
+  opt_vrs <- cats()
+  st_geometry(opt_vrs) <- NULL
+  opt_vrs <- opt_vrs %>% 
+    ungroup %>% 
+    select(TN2, TP, Cond) %>% 
+    as.list
   plovrs <- c(input$chem1, input$chem2)
-  
-  # names of variables to hold constant
-  convrs <- names(plot.dat.chem)[!names(plot.dat.chem) %in% c(plovrs, 'pChem')]
-  
-  # selected conditional variables
-  selcon <- mydf.prediction[, convrs, drop = F] %>% 
-    gather('var', 'val')
 
-  # estimated conditional variables, closest values to sel
-  selconclo <- plot.dat.chem[, convrs, drop = F] %>% 
-    gather('var', 'val') %>% 
-    left_join(selcon, by = 'var') %>% 
-    mutate(minv = abs(val.x - val.y)) %>% 
-    group_by(var) %>% 
-    filter(minv == min(minv)) %>% 
-    unique %>% 
-    filter(!duplicated(var)) %>% 
-    select(var, val.x) %>% 
-    rename(val = val.x) %>% 
-    mutate(val = round(val, 5)) %>% 
-    unite('con', var, val, sep = ' == ') %>% 
-    unlist %>% 
-    paste(collapse = ' & ')
-  
-  # filtered chem data to plot
-  toplo <- plot.dat.chem %>% 
-    mutate_if(is.numeric, round, 5) %>% 
-    filter_(selconclo)
-
-  # actual selected values and prob est
-  my.pred.plot<-mydf.prediction
-  my.pred.plot$TN2<-pmin(max(plot.dat.chem$TN2),my.pred.plot$TN2)
-  my.pred.plot$TP<-pmin(max(plot.dat.chem$TP),my.pred.plot$TP)
-  my.pred.plot$Cond<-pmin(max(plot.dat.chem$Cond),my.pred.plot$Cond)
-  
-  # title
-  titlvl <- selcon %>% 
-    unite('con', var, val, sep = ' ') %>% 
-    unlist %>% 
-    paste(collapse = ', ') %>% 
-    paste0('Constant values:\n\t ', .)
-  selcvl <- mydf.prediction[plovrs] %>% 
-    paste(names(.), .) %>% 
-    paste(collapse = ', ') %>% 
-    paste0('Selected values:\n\t ', .)
-  titlvl <- paste0(selcvl, '\n\n', titlvl)
-  
-  p1 <- ggplot(data = toplo, aes_string(x=plovrs[1], y=plovrs[2]))+
-    geom_tile(aes(fill=pChem))+
-    scale_fill_gradient2(low="#d7191c", mid="#ffffbf", high="#2c7bb6", midpoint=0.5)+
-    geom_point(data=my.pred.plot, shape=21, size = 5, fill="white")+
-    theme_minimal(base_size = 14, base_family = 'serif') +
-    theme(
-      plot.title = element_text(size = 12), 
-      legend.position = 'top'
-      ) +
-    scale_x_continuous(expand = c(0, 0)) +
-    scale_y_continuous(expand = c(0, 0)) +
-    ggtitle(titlvl)
-  
-  p1
+  # the plot
+  strs_surf(plovrs[1], plovrs[2], 'wq_mod', opt_vrs = opt_vrs)
   
 }, height = 500)
 
 # chemistry wq plots
 output$plohab <- renderPlot({
   
-  mydf.prediction <- cats()
-  st_geometry(mydf.prediction) <- NULL
-  
-  # names of variables to plot
+  # inputs
+  opt_vrs <- cats()
+  st_geometry(opt_vrs) <- NULL
+  opt_vrs <- opt_vrs %>% 
+    ungroup %>% 
+    select(indexscore_cram, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG) %>% 
+    as.list
   plovrs <- c(input$hab1, input$hab2)
-  
-  # names of variables to hold constant
-  convrs <- names(plot.dat.hab)[!names(plot.dat.hab) %in% c(plovrs, 'pHab')]
-  
-  # selected conditional variables
-  selcon <- mydf.prediction[, convrs, drop = F] %>% 
-    gather('var', 'val')
-  
-  # estimated conditional variables, closest values to sel
-  selconclo <- plot.dat.hab[, convrs, drop = F] %>% 
-    gather('var', 'val') %>% 
-    left_join(selcon, by = 'var') %>% 
-    mutate(minv = abs(val.x - val.y)) %>% 
-    group_by(var) %>% 
-    filter(minv == min(minv)) %>% 
-    unique %>% 
-    filter(!duplicated(var)) %>% 
-    select(var, val.x) %>% 
-    rename(val = val.x) %>% 
-    mutate(val = round(val, 5)) %>% 
-    unite('con', var, val, sep = ' == ') %>% 
-    unlist %>% 
-    paste(collapse = ' & ')
-  
-  # filtered hab data to plot
-  toplo <- plot.dat.hab %>% 
-    mutate_if(is.numeric, round, 5) %>% 
-    filter_(selconclo)
 
-  # actual selected values and prob est
-  my.pred.plot<-mydf.prediction
-  my.pred.plot$indexscore_cram<-pmin(max(plot.dat.hab$indexscore_cram),my.pred.plot$indexscore_cram)
-  my.pred.plot$PCT_SAFN<-pmin(max(plot.dat.hab$PCT_SAFN),my.pred.plot$PCT_SAFN)
-  my.pred.plot$H_AqHab<-pmin(max(plot.dat.hab$H_AqHab),my.pred.plot$H_AqHab)
-  my.pred.plot$H_SubNat<-pmin(max(plot.dat.hab$H_SubNat),my.pred.plot$H_SubNat)
-  my.pred.plot$Ev_FlowHab<-pmin(max(plot.dat.hab$Ev_FlowHab),my.pred.plot$Ev_FlowHab)
-  my.pred.plot$XCMG<-pmin(max(plot.dat.hab$XCMG),my.pred.plot$XCMG)
-  
-  # title
-  titlvl <- selcon %>% 
-    unite('con', var, val, sep = ' ') %>% 
-    unlist %>% 
-    paste(collapse = ', ') %>% 
-    paste0('Constant values:\n\t ', .)
-  selcvl <- mydf.prediction[plovrs] %>% 
-    paste(names(.), .) %>% 
-    paste(collapse = ', ') %>% 
-    paste0('Selected values:\n\t ', .)
-  titlvl <- paste0(selcvl, '\n\n', titlvl)
-  
-  p1 <- ggplot(data = toplo, aes_string(x=plovrs[1], y=plovrs[2]))+
-    geom_tile(aes(fill=pHab))+
-    scale_fill_gradient2(low="#d7191c", mid="#ffffbf", high="#2c7bb6", midpoint=0.5)+
-    geom_point(data=my.pred.plot, shape=21, size = 5, fill="white")+
-    theme_minimal(base_size = 14, base_family = 'serif') +
-    theme(
-      plot.title = element_text(size = 12), 
-      legend.position = 'top'
-      ) +
-    scale_x_continuous(expand = c(0, 0)) +
-    scale_y_continuous(expand = c(0, 0)) +
-    ggtitle(titlvl)
-  
-  p1
+  # the plot
+  strs_surf(plovrs[1], plovrs[2], 'hab_mod', opt_vrs = opt_vrs)
   
 }, height = 500)
 ```
