@@ -237,7 +237,7 @@ output$cram <- renderGauge({
 output$safn <- renderGauge({
   val <- round(cats()$PCT_SAFN, 1)
   gauge(val, min = 0, max = 100, gaugeSectors(
-     danger = c(0, 33), warning = c(33, 66), success = c(66, 100))
+     danger = c(66, 100), warning = c(33, 66), success = c(0, 33))
   )
 })
 output$aqhab <- renderGauge({
