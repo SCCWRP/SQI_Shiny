@@ -13,6 +13,7 @@ xwalk <- read.csv('raw/scoring_xwalk.csv', stringsAsFactors = F)
 # convert bio to BCG classes
 # join with BCG, score, and combined score table
 # convert combined score to "good", "bad"
+# bio_bf, 1 is "good" biology, 0 is "poor" biology
 alldat <- read.csv('raw/CombinedData_112417.csv', stringsAsFactors = F) %>% 
   select(MasterID, SampleDate2, Latitude, Longitude, SMCShed, SMC_LU, csci_mean, h20_mean, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG, indexscore_cram, Cond, TN2, TP) %>% 
   na.omit %>% 
@@ -49,28 +50,28 @@ valdat <- alldat %>%
   filter(SiteSet %in% 'Val')
 
 # models, gam
-wqgamwp <- gam(Bio_pf ~ s(TN2, bs = 'tp') + s(TP, bs = 'tp') + s(Cond, bs = 'tp') + ti(TP, TN2, bs = c('tp', 'tp')),
+wqgam <- gam(Bio_pf ~ s(TN2, bs = 'tp') + s(TP, bs = 'tp') + s(Cond, bs = 'tp'),
               family = binomial('logit'), data = caldat)
 
-habgamwp <- gam(Bio_pf ~ s(indexscore_cram, bs = 'tp') + s(PCT_SAFN, bs = 'tp') + s(H_AqHab, bs = 'tp') + s(H_SubNat, bs = 'tp') + s(Ev_FlowHab, bs = 'tp') + s(XCMG, bs = 'tp'),
+habgam <- gam(Bio_pf ~ s(indexscore_cram, bs = 'tp') + s(PCT_SAFN, bs = 'tp') + s(H_AqHab, bs = 'tp') + s(H_SubNat, bs = 'tp') + s(Ev_FlowHab, bs = 'tp') + s(XCMG, bs = 'tp'),
                family = binomial('logit'), data = caldat)
 
 # models, rf
 set.seed(102)
-wqrfwp <- randomForest(y = as.factor(caldat$Bio_pf),
+wqrf <- randomForest(y = as.factor(caldat$Bio_pf),
                           x = caldat[, c('TN2', 'Cond', 'TP')], 
                           ntree = 1000, importance = T)
 
 set.seed(104)
-habrfwp <- randomForest(y = as.factor(caldat$Bio_pf), 
+habrf <- randomForest(y = as.factor(caldat$Bio_pf), 
                            x = caldat[, c('indexscore_cram', 'PCT_SAFN', 'H_AqHab', 'H_SubNat', 'Ev_FlowHab', 'XCMG')], 
                            ntree = 1000, importance = T)
 
 ##
 # save models
-wqgamwp <- save(wqgamwp, file = '../WQI/data/wqgamwp.RData', compress = 'xz')
-habgamwp <- save(habgamwp, file = '../WQI/data/habgamwp.RData', compress = 'xz')
-wqrfwp <- save(wqrfwp, file = '../WQI/data/wqrfwp.RData', compress = 'xz')
-habrfwp <- save(habrfwp, file = '../WQI/data/habrfwp.RData', compress = 'xz')
+wqgam <- save(wqgam, file = '../WQI/data/wqgam.RData', compress = 'xz')
+habgam <- save(habgam, file = '../WQI/data/habgam.RData', compress = 'xz')
+wqrf <- save(wqrf, file = '../WQI/data/wqrf.RData', compress = 'xz')
+habrf <- save(habrf, file = '../WQI/data/habrf.RData', compress = 'xz')
 
 

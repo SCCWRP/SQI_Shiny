@@ -14,8 +14,8 @@ library(tidyverse)
 library(randomForest)
 library(gridExtra)
 library(flexdashboard)
-library(WQI)
-# devtools::load_all('../WQI/.')
+# library(WQI)
+devtools::load_all('../WQI/.')
 library(mapview)
 library(leaflet)
 library(sf)
@@ -24,30 +24,6 @@ library(sf)
 source("R/funcs.R")
 data(alldatavg)
 data(sheds)
-
-# length values for sequence plot data
-len.x<-20
-
-# chem plot data
-plot.dat.chem <- crossing(
-  TN2=seq(from=0,to=1.5, length.out=len.x*2.5),
-  TP=seq(from=0,to=1, length.out=len.x*2.5),
-  Cond=seq(from=0,to=2000, length.out=len.x*2.5)
-)
-
-plot.dat.chem$pChem<-predict(wqrfwp, newdata=plot.dat.chem, type="prob")[,2]
-
-# hab plot data
-plot.dat.hab<-expand.grid(
-  indexscore_cram=seq(from=24,to=100, length.out=len.x/2),
-  PCT_SAFN=seq(from=0,to=100, length.out=len.x/2),
-  H_AqHab=seq(from=0,to=2.5, length.out=len.x/2),
-  H_SubNat=seq(from=0,to=2.5, length.out=len.x/2),
-  Ev_FlowHab=seq(from=0,to=1, length.out=len.x/2),
-  XCMG=seq(from=0,to=264, length.out=len.x/2)
-)
-
-plot.dat.hab$pHab<-predict(habrfwp, newdata=plot.dat.hab, type="prob")[,2]
 ```
 
 ```{r reactives}
@@ -281,7 +257,7 @@ output$plochem <- renderPlot({
   plovrs <- c(input$chem1, input$chem2)
 
   # the plot
-  strs_surf(plovrs[1], plovrs[2], 'wq_mod', opt_vrs = opt_vrs)
+  strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'wq_mod', mod_in = 'wqgam', opt_vrs = opt_vrs)
   
 }, height = 500)
 
@@ -298,7 +274,7 @@ output$plohab <- renderPlot({
   plovrs <- c(input$hab1, input$hab2)
 
   # the plot
-  strs_surf(plovrs[1], plovrs[2], 'hab_mod', opt_vrs = opt_vrs)
+  strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'hab_mod', mod_in = 'habgam', opt_vrs = opt_vrs)
   
 }, height = 500)
 ```

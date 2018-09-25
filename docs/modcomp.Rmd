@@ -1,0 +1,259 @@
+---
+title: "Model comparison"
+output: 
+  html_document:
+    code_folding: hide
+---
+
+```{r setup, message = F, warning = F}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+
+library(tidyverse)
+library(mgcv)
+library(gridExtra)
+library(randomForest)
+library(WQI)
+library(caret)
+
+source('../R/funcs.R')
+
+# lookup table of bio BCG class, corresponding score, and combined categorical score
+xwalk <- read.csv('../raw/scoring_xwalk.csv', stringsAsFactors = F)
+
+# all chem, bio, hab data
+# select variables of interest
+# convert bio to BCG classes
+# join with BCG, score, and combined score table
+# convert combined score to "good", "bad"
+alldat <- read.csv('../raw/CombinedData_112417.csv', stringsAsFactors = F) %>% 
+  select(MasterID, SampleDate2, Latitude, Longitude, SMCShed, SMC_LU, csci_mean, h20_mean, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG, indexscore_cram, Cond, TN2, TP) %>% 
+  na.omit %>% 
+  mutate(
+    CSCI_class = cut(csci_mean, breaks = c(-Inf, 0.3, 0.6, 0.77, 1, Inf), labels = c(6, 5, 4, 3, 2)), 
+    CSCI_class = as.numeric(as.character(CSCI_class)),
+    H20_class = cut(h20_mean, breaks = c(-Inf, 25, 60, 90, Inf), labels = c(5, 4, 3, 2)),
+    H20_class = as.numeric(as.character(H20_class))
+  ) %>% 
+  left_join(xwalk, by = c('CSCI_class', 'H20_class')) %>% 
+  select(-bmiscore, -algscore, -BugMidpoint, -AlgMidpoint, -Bio_WP) %>% 
+  mutate(
+    Bio_pf = ifelse(Bio_BPJ > 0, 1, 0)
+  )
+
+# get calibration/validation datasets
+set.seed(500)
+mydf.t<- alldat %>% group_by(Bio_pf)
+my.sites <- unique(mydf.t[, c('MasterID', 'Bio_pf')])
+sites.cal <- sample_frac(my.sites, 0.75, replace = F) %>% 
+  group_by('Bio_pf')
+mydf.t <- mydf.t %>% 
+  mutate(
+    SiteSet = ifelse(MasterID %in% sites.cal$MasterID, 'Cal', 'Val')
+  ) %>% 
+  select(MasterID, SampleDate2, SiteSet)
+alldat <- alldat %>% 
+  left_join(mydf.t, by = c('MasterID', 'SampleDate2', 'Bio_pf')) %>% 
+  rename(
+    CSCI = csci_mean,
+    ASCI = h20_mean
+  )
+
+# get model predictions by model and site type
+ests <- alldat %>% 
+  group_by(SiteSet) %>% 
+  nest %>% 
+  mutate(
+    data = purrr::map(data, function(x){
+      
+      # gam predictions
+      x$gam_wqlk <- predict(wqgam, newdata = x, type = "response")
+      x$gam_hablk <- predict(habgam, newdata = x, type = "response")
+      
+      # randomforest predictions
+      x$rf_wqlk <- predict(wqrf, newdata = x, type = "prob")[,2]
+      x$rf_hablk <- predict(habrf, newdata = x, type = "prob")[,2]
+      
+      # wqi from gam
+      wqi_gam <- wqi(x, wq_mod_in = wqgam, hab_mod_in = habgam) %>% 
+        select(BiologicalCondition, WaterChemistryCondition, HabitatCondition, OverallStressCondition, OverallStressCondition_detail, StreamHealthIndex) %>% 
+        rename_all(funs(paste0('gam_', .)))
+      
+      # wqi from rf
+      wqi_rf <- wqi(x) %>% 
+        select(BiologicalCondition, WaterChemistryCondition, HabitatCondition, OverallStressCondition, OverallStressCondition_detail, StreamHealthIndex) %>% 
+        rename_all(funs(paste0('rf_', .)))
+      
+      # combine wqi output
+      x <- x %>% 
+        cbind(wqi_gam, wqi_rf)
+      
+      return(x)
+      
+    })
+    
+  ) %>% 
+  unnest %>% 
+  select(SiteSet, Bio_pf, matches('^gam|^rf')) %>% 
+  mutate(ind = 1:nrow(.))
+```
+
+## Comparison of stress probabilities
+
+```{r fig.height = 7, fig.width = 6}
+
+toplo <- ests %>% 
+  select(ind, Bio_pf, SiteSet, gam_wqlk, gam_hablk, rf_wqlk, rf_hablk) %>% 
+  group_by(SiteSet) %>% 
+  nest %>% 
+  mutate(data = map(data, function(x) {
+    
+    x %>% 
+      gather('var', 'val', -ind, -Bio_pf) %>% 
+      separate(var, c('mod', 'typ'), sep = '_') %>% 
+      spread(mod, val)
+    
+  })) %>% 
+  unnest %>% 
+  mutate(
+    typ = case_when(
+      typ == 'hablk' ~ "Pr. low habitat stress", 
+      typ == 'wqlk' ~ "Pr. low chemistry sress"
+    ), 
+    gamcat = ifelse(gam < 0.5, 0, 1),
+    rfcat = ifelse(rf < 0.5, 0, 1), 
+    gamcat = factor(gamcat), 
+    rfcat = factor(rfcat), 
+    Bio_pf = factor(Bio_pf)
+  )
+
+ggplot(toplo, aes(x = rf, y = gam)) + 
+  geom_point() + 
+  facet_wrap(SiteSet ~ typ) +
+  geom_abline(intercept = 0, slope = 1) + 
+  theme_bw(base_family = 'serif', base_size = 16) + 
+  theme(
+    strip.background = element_blank()
+  )
+```
+
+```{r}
+cnfmats <- toplo %>% 
+  group_by(SiteSet, typ) %>% 
+  nest %>% 
+  mutate(
+    gamcnf = map(data, function(x){
+      
+      with(x,
+        confusionMatrix(Bio_pf, gamcat)
+      )
+      
+    }),
+    rfcnf = map(data, function(x){
+      
+      with(x,
+        confusionMatrix(Bio_pf, rfcat)
+      )
+      
+    })
+  )
+```
+
+## {.tabset}
+
+Reference is actual biological state from BI combinations.
+
+### GAM calibration, chem
+
+```{r}
+cnfmats$gamcnf[[4]]
+```
+
+### GAM validation, chem
+
+```{r}
+cnfmats$gamcnf[[2]]
+```
+
+### RF calibration, chem
+
+```{r}
+cnfmats$rfcnf[[4]]
+```
+
+### RF validation, chem
+
+```{r}
+cnfmats$rfcnf[[2]]
+```
+
+### GAM calibration, hab
+
+```{r}
+cnfmats$gamcnf[[3]]
+```
+
+### GAM validation, hab
+
+```{r}
+cnfmats$gamcnf[[1]]
+```
+
+### RF calibration, hab
+
+```{r}
+cnfmats$rfcnf[[3]]
+```
+
+### RF validation, hab
+
+```{r}
+cnfmats$rfcnf[[1]]
+```
+## Comparison of WQI categories {.tabset}
+
+Reference is results from RF model, Prediction is results from GAM
+
+### Overall WQI
+
+```{r}
+ests <- ests %>% 
+  mutate_if(is.character, as.factor)
+  
+with(ests, 
+     confusionMatrix(rf_StreamHealthIndex, gam_StreamHealthIndex))
+```
+
+### Biological condition
+
+```{r}
+with(ests, 
+     confusionMatrix(rf_BiologicalCondition, gam_BiologicalCondition))
+```
+
+### Water chemistry
+
+```{r}
+with(ests, 
+     confusionMatrix(rf_WaterChemistryCondition, gam_WaterChemistryCondition))
+```
+
+### Habitat condition
+
+```{r}
+with(ests, 
+     confusionMatrix(rf_HabitatCondition, gam_HabitatCondition))
+```
+
+### Overall stress condition
+
+```{r}
+with(ests, 
+     confusionMatrix(rf_OverallStressCondition, gam_OverallStressCondition))
+```
+
+### Overall stress condition detail
+
+```{r}
+with(ests, 
+     confusionMatrix(rf_OverallStressCondition_detail, gam_OverallStressCondition_detail))
+```
