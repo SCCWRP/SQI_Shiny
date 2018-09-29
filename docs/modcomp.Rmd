@@ -63,15 +63,30 @@ ests <- alldat %>%
   group_by(SiteSet) %>% 
   nest %>% 
   mutate(
-    data = purrr::map(data, function(x){
+    data = purrr::pmap(list(data, SiteSet), function(data, SiteSet){
+      
+      x <- data
       
       # gam predictions
       x$gam_wqlk <- predict(wqgam, newdata = x, type = "response")
       x$gam_hablk <- predict(habgam, newdata = x, type = "response")
       
-      # randomforest predictions
-      x$rf_wqlk <- predict(wqrf, newdata = x, type = "prob")[,2]
-      x$rf_hablk <- predict(habrf, newdata = x, type = "prob")[,2]
+      # rf predictions
+      if(SiteSet == 'Cal'){
+        
+        # randomforest predictions, do not use new data for out of bag
+        x$rf_wqlk <- predict(wqrf, type = "prob")[,2]
+        x$rf_hablk <- predict(habrf, type = "prob")[,2]
+        
+      }
+      
+      if(SiteSet == 'Val'){
+        
+        # randomforest predictions, do not use new data for out of bag
+        x$rf_wqlk <- predict(wqrf, newdata = x, type = "prob")[,2]
+        x$rf_hablk <- predict(habrf, newdata = x, type = "prob")[,2]
+        
+      }
       
       # wqi from gam
       wqi_gam <- wqi(x, wq_mod_in = wqgam, hab_mod_in = habgam) %>% 

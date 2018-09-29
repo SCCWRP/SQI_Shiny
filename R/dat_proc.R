@@ -21,7 +21,7 @@ alldatavg <- read.csv('//172.16.1.5/Biology/SMC WQI_RM/Data/RawData/SMC_WQIapp_0
   group_by(MasterID, var) %>% 
   summarise(val = mean(val, na.rm = T)) %>% 
   spread(var, val) %>% 
-  wqi %>%
+  wqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
   st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj)
 
 save(alldatavg, file = 'data/alldatavg.RData', compress = 'xz')
@@ -38,7 +38,7 @@ alldat <- read.csv('//172.16.1.5/Biology/SMC WQI_RM/Data/RawData/SMC_WQIapp_0516
     CSCI = csci_mean,
     ASCI = h20_mean
   ) %>% 
-  wqi %>%
+  wqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
   st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj)
 
 save(alldat, file = 'data/alldat.RData', compress = 'xz')
