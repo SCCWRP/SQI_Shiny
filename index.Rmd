@@ -19,27 +19,91 @@ devtools::load_all('../WQI/.')
 library(mapview)
 library(leaflet)
 library(sf)
+library(shinyWidgets)
 
 # source functions and data
 source("R/funcs.R")
 data(alldatavg)
 data(sheds)
+data(cntys)
 ```
 
 ```{r reactives}
 # selected site for results
 cats <- reactive({
 
+  # inputs
+  sitedat <- sitedat()
+  
   if(is.null(selsit))
     selsit <- '405M10596'
   
   # subset
-  out <- alldatavg %>% 
+  out <- sitedat %>% 
     filter(MasterID %in% selsit)
   
   return(out)
   
   })
+
+# choices for spatial filter
+spaflt <- reactive({
+  
+  # input
+  flby <- input$flby
+  
+  if(flby == 'SMC regions')
+    out <- sheds %>% 
+      rename(polylab = SMC_Name)
+          
+  if(flby == 'Counties')
+    out <- cntys %>% 
+      rename(polylab = cnty)
+  
+  out <- out %>% 
+    pull(polylab) %>% 
+    sort %>% 
+    as.character
+  
+  return(out)
+  
+})
+
+# selected shed or county polygons, filtered
+polys <- reactive({
+  
+  # inputs
+  flby <- input$flby
+  flts <- input$flts
+      
+  if(flby == 'SMC regions')
+    out <- sheds %>% 
+      rename(pllb = SMC_Name)
+
+  if(flby == 'Counties')
+    out <- cntys %>% 
+      rename(pllb = cnty)
+  
+  # filter by selection
+  out <- out %>% 
+    filter(pllb %in% flts)
+  
+  return(out)
+  
+})
+
+# filter site data by spatial 
+sitedat <- reactive({
+  
+  # input
+  polys <- polys()
+  
+  out <- alldatavg[polys, ]
+  
+  return(out)
+  
+})
+
 ```
 
 ```{r outputobj}
@@ -47,15 +111,19 @@ output$map <- renderLeaflet({
 
   # input
   tomap <- input$tomap
-  cols <- getdsccol(alldatavg[[tomap]])
+  polys <- polys()
+  sitedat <- sitedat()
+  
+  # assign colors
+  cols <- getdsccol(sitedat[[tomap]])
   names(cols) <- NULL
-  names(alldatavg)[names(alldatavg) %in% tomap] <- 'toshw'
+  names(sitedat)[names(sitedat) %in% tomap] <- 'toshw'
 
-  mapview(sheds, fill = F, label = sheds$SMC_Name, homebutton = F) %>% 
+  mapview(polys, fill = F, label = polys$pllb, homebutton = F) %>% 
     .@map %>% 
     removeMouseCoordinates() %>%
     addCircleMarkers(
-      data = alldatavg, 
+      data = sitedat, 
       layerId = ~MasterID,
       stroke = TRUE,
       color = 'black',
@@ -65,7 +133,8 @@ output$map <- renderLeaflet({
       weight = 1,
       fillOpacity = 1,
       label = ~paste0(MasterID, ': ', toshw)
-    )
+    ) #%>% 
+    # setView(lng = -118.132, lat = 33.877, zoom = 8)
 
 })
 
@@ -82,13 +151,17 @@ observeEvent(input$map_marker_click, {
 
 observeEvent(input$map_marker_click, {
 
+  # inputs
   tomap <- input$tomap
-  cols <- getdsccol(alldatavg[[tomap]])
+  sitedat <- sitedat()
+  
+  # colors
+  cols <- getdsccol(sitedat[[tomap]])
   names(cols) <- NULL
-  names(alldatavg)[names(alldatavg) %in% tomap] <- 'toshw'
+  names(sitedat)[names(sitedat) %in% tomap] <- 'toshw'
   
   # filter the pour points by selection
-  selsitplo <- alldatavg %>% 
+  selsitplo <- sitedat %>% 
     filter(MasterID %in% selsit)
   selsitplocol <- getdsccol(selsitplo[['toshw']])
   names(selsitplocol) <- NULL
@@ -97,7 +170,7 @@ observeEvent(input$map_marker_click, {
   map <- map %>% 
     clearMarkers() %>% 
     addCircleMarkers(
-      data = alldatavg, 
+      data = sitedat, 
       layerId = ~MasterID,
       stroke = TRUE,
       color = 'black',
@@ -283,18 +356,56 @@ Sidebar {.sidebar data-width=700}
 ===========================================================
 
 ```{r}
-selectInput('tomap', 'WQI output:', 
-  choices = list(
-    'Overall' = 'StreamHealthIndex', 
-    'Biological condition' = 'BiologicalCondition',
-    'Stress condition' = 'OverallStressCondition', 
-    'Stress condition detail' = 'OverallStressCondition_detail'
+# select spatial filter
+column(width = 12, 
+  
+  column(width = 6, 
+         
+    selectInput('flby', 'Filter by:', choices = c('SMC regions', 'Counties'))
+                
   ), 
-  selected = 'Overall'
+  
+  column(width = 6, 
+         
+    renderUI({
+      
+      # input
+      spaflt <- spaflt()
+
+      pickerInput(inputId = "flts", label = 'Select spatial filters:', choices = spaflt,
+        options = list(`actions-box` = TRUE, size = 20), selected = spaflt, multiple = TRUE)      
+      
+    })
+           
+  )
+       
+)
+
+# select index output on map and site selection text
+column(width = 12, 
+       
+  column(width = 6, 
+                
+    selectInput('tomap', 'WQI output:', 
+      choices = list(
+        'Overall' = 'StreamHealthIndex', 
+        'Biological condition' = 'BiologicalCondition',
+        'Stress condition' = 'OverallStressCondition', 
+        'Stress condition detail' = 'OverallStressCondition_detail'
+      ), 
+      selected = 'Overall'
+    )
+  
+  ),
+  
+  column(width = 6, 
+         
+    renderText(paste0('Selected site: ', selsit))
+    
+  )
+  
 )
 ```
-
-Selected site: `r renderText({selsit})`
 
 ```{r}
 leafletOutput('map', height = 620)

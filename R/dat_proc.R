@@ -24,8 +24,6 @@ alldatavg <- read.csv('//172.16.1.5/Biology/SMC WQI_RM/Data/RawData/SMC_WQIapp_0
   wqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
   st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj)
 
-save(alldatavg, file = 'data/alldatavg.RData', compress = 'xz')
-
 ######
 # get all existing data 
 # same as above but repeats not averaged
@@ -41,5 +39,36 @@ alldat <- read.csv('//172.16.1.5/Biology/SMC WQI_RM/Data/RawData/SMC_WQIapp_0516
   wqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
   st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj)
 
-save(alldat, file = 'data/alldat.RData', compress = 'xz')
+######
+# county and smc shed data data, intersected with sample data above
 
+data(alldatavg)
+data(alldat)
+
+# county
+cntys <- st_read('S:/Spatial_Data/CA_Counties/cnty24k97.shp') %>% 
+  st_transform(crs = prj) %>% 
+  .[alldatavg, ] %>% 
+  select(NAME) %>% 
+  rename(cnty = NAME) %>% 
+  mutate_if(is.factor, as.character)
+
+# sheds, as sf
+sheds <- st_read('S:/Spatial_Data/SMCBasefiles/Boundaries/SMCSheds/SMCSheds2009/SMCSheds2009.shp') %>%
+  st_as_sf %>% 
+  st_transform(crs = prj) %>% 
+  select(SMC_Name) %>% 
+  mutate_if(is.factor, as.character)
+
+# get intersection with sample data
+alldat <- alldat %>% 
+  st_intersection(cntys) %>% 
+  st_intersection(sheds)
+alldatavg <- alldatavg %>% 
+  st_intersection(cntys) %>% 
+  st_intersection(sheds)
+
+save(cntys, file = 'data/cntys.RData', compress = 'xz')
+save(sheds, file = 'data/sheds.RData', compress = 'xz')
+save(alldat, file = 'data/alldat.RData', compress = 'xz')
+save(alldatavg, file = 'data/alldatavg.RData', compress = 'xz')
