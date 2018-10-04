@@ -118,6 +118,9 @@ output$map <- renderLeaflet({
   cols <- getdsccol(sitedat[[tomap]])
   names(cols) <- NULL
   names(sitedat)[names(sitedat) %in% tomap] <- 'toshw'
+  
+  # legend stuff
+  legcols <- getdsccol(palfac = tomap)
 
   mapview(polys, fill = F, label = polys$pllb, homebutton = F) %>% 
     .@map %>% 
@@ -133,8 +136,8 @@ output$map <- renderLeaflet({
       weight = 1,
       fillOpacity = 1,
       label = ~paste0(MasterID, ': ', toshw)
-    ) #%>% 
-    # setView(lng = -118.132, lat = 33.877, zoom = 8)
+    ) %>% 
+    addLegend("topright", colors = legcols$col, labels = legcols$nms, opacity = 1)
 
 })
 
