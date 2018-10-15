@@ -26,17 +26,34 @@ source("R/funcs.R")
 data(alldatavg)
 data(sheds)
 data(cntys)
+
+# numeric variable names
+numnms <- c('CSCI', 'ASCI', 'TN2', 'TP', 'Cond', 'indexscore_cram', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
+numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', '% sands and fines', 'SW diversity of aquatic habitat', 'SW diversity of streambed substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
+names(numnms) <- numlab
+
+# color lims
+cscilim <- c(0, 0.79, 1, 1.5)
+ascilim <- c(0, 33, 66, 100)
+tnlim <- c(34, 22, 11, 0)
+tplim <- c(4, 3, 1.5, 0)
+condlim <- c(7050, 4700, 2350, 0)
+cramlim <- c(0, 33, 66, 100)
+safnlim <- c(600, 66, 33, 0)
+aqhablim <- c(0, 0.87, 1.74, 2.6)
+subnatlim <- c(0, 0.87, 1.74, 2.6)
+flowhablim <- c(0, 0.33, 0.66, 1)
+veglim <- c(0, 100, 200, 300)
 ```
 
 ```{r reactives}
 # selected site for results
 cats <- reactive({
 
+  req(nrow(sitedat()) > 0)
+  
   # inputs
   sitedat <- sitedat()
-  
-  if(is.null(selsit))
-    selsit <- '405M10596'
   
   # subset
   out <- sitedat %>% 
@@ -104,6 +121,47 @@ sitedat <- reactive({
   
 })
 
+# distribution of conditions for selected sites given spatial filter
+dstdat <- reactive({
+  
+  # input
+  sitedat <- sitedat()
+
+  # aggregate 
+  out <- sitedat
+  st_geometry(out) <- NULL
+  out <- out %>% 
+    select_if(is.numeric) %>% 
+    gather('var', 'val') %>% 
+    filter(var %in% numnms) %>% 
+    mutate(
+      var = factor(var, levels = numnms, labels = names(numnms))
+    )
+  
+  return(out)
+  
+})
+
+# selected site data but in long format
+catslng <- reactive({
+  
+  # input
+  cats <- cats()
+  
+  # format selected data
+  st_geometry(cats) <- NULL
+  out <- cats %>% 
+    select_if(is.numeric) %>% 
+    gather('var', 'val') %>% 
+    filter(var %in% numnms) %>% 
+    mutate(
+      var = factor(var, levels = numnms, labels = names(numnms))
+    )
+  
+  return(out)
+  
+})
+
 ```
 
 ```{r outputobj}
@@ -114,6 +172,8 @@ output$map <- renderLeaflet({
   polys <- polys()
   sitedat <- sitedat()
   
+  req(nrow(polys) > 0)
+  
   # assign colors
   cols <- getdsccol(sitedat[[tomap]])
   names(cols) <- NULL
@@ -122,7 +182,7 @@ output$map <- renderLeaflet({
   # legend stuff
   legcols <- getdsccol(palfac = tomap)
 
-  mapview(polys, fill = F, label = polys$pllb, homebutton = F) %>% 
+  mapview(polys, fill = F, label = polys$pllb, homebutton = F, popup = NULL) %>% 
     .@map %>% 
     removeMouseCoordinates() %>%
     addCircleMarkers(
@@ -137,7 +197,7 @@ output$map <- renderLeaflet({
       fillOpacity = 1,
       label = ~paste0(MasterID, ': ', toshw)
     ) %>% 
-    addLegend("topright", colors = legcols$col, labels = legcols$nms, opacity = 1)
+    addLegend("bottomleft", colors = legcols$col, labels = legcols$nms, opacity = 1)
 
 })
 
@@ -202,21 +262,25 @@ observeEvent(input$map_marker_click, {
 ##
 # WQI descriptor outputs
 output$overall <- flexdashboard::renderValueBox({
+  req(nrow(cats()) > 0)
   txtin <- cats()$StreamHealthIndex
   colin <- getdsccol(txtin)
   flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-plus', color = colin)
   })
 output$biolcon <- flexdashboard::renderValueBox({
+  req(nrow(cats()) > 0)
   txtin <- cats()$BiologicalCondition
   colin <- getdsccol(txtin)
   flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-leaf', color = colin)
   })
 output$strscon <- flexdashboard::renderValueBox({
+  req(nrow(cats()) > 0)
   txtin <- cats()$OverallStressCondition
   colin <- getdsccol(txtin)
   flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-flash', color = colin)
   })
 output$strsdet <- flexdashboard::renderValueBox({
+  req(nrow(cats()) > 0)
   txtin <- cats()$OverallStressCondition_detail
   colin <- getdsccol(txtin)
   flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-flash', color = colin)
@@ -252,20 +316,20 @@ output$phab <- renderGauge({
 # detail gauge outputs
 output$csci <- renderGauge({
   val <- round(cats()$CSCI, 1)
-  gauge(val, min = 0, max = 1.5, gaugeSectors(
-     danger = c(0, .79), warning = c(0.79, 1), success = c(1, 1.5))
+  gauge(val, min = cscilim[1], max = cscilim[4], gaugeSectors(
+     danger = cscilim[c(1, 2)], warning = cscilim[c(2, 3)], success = cscilim[c(3, 4)])
   )
 })
 output$asci <- renderGauge({
   val <- round(cats()$ASCI, 1)
-  gauge(val, min = 0, max = 100, gaugeSectors(
-     danger = c(0, 33), warning = c(33, 66), success = c(66, 100))
+  gauge(val, min = ascilim[1], max = ascilim[4], gaugeSectors(
+     danger = ascilim[c(1, 2)], warning = ascilim[c(2, 3)], success = ascilim[c(3, 4)])
   )
 })
 output$tn <- renderGauge({
   val <- round(cats()$TN2, 1)
-  gauge(val, min = 0, max = 34, gaugeSectors(
-     danger = c(22, 34), warning = c(11, 22), success = c(0, 11))
+  gauge(val, min = tnlim[1], max = tnlim[4], gaugeSectors(
+     danger = tnlim[c(3, 4)], warning = tnlim[c(2, 3)], success = tnlim[c(1, 2)])
   )
 })
 output$tp <- renderGauge({
@@ -353,6 +417,102 @@ output$plohab <- renderPlot({
   strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'hab_mod', mod_in = 'habgam', opt_vrs = opt_vrs)
   
 }, height = 500)
+
+# distribution boxplots, biology
+output$plodstbio <- renderPlot({
+  
+  # only do it a site has been selected
+  req(nrow(catslng()) > 0)
+  
+  # input
+  dstdat <- dstdat()
+  catslng <- catslng()
+  
+  # filter biodata
+  selvr <- c('CSCI', 'ASCI')
+  toplodst <- dstdat %>% 
+    filter(var %in% selvr)
+  toplocats <- catslng %>% 
+    filter(var %in% selvr)
+  
+  p <- ggplot(toplodst, aes(x = var, y = val)) + 
+    geom_boxplot() + 
+    geom_hline(data = toplocats, aes(yintercept = val), colour = 'tomato1', size = 1) +
+    facet_wrap(~var, scales = 'free', ncol = length(selvr)) + 
+    theme_bw() + 
+    theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank(), 
+      axis.title = element_blank() 
+    )
+  
+  return(p)
+  
+}, width = 400)
+
+# distribution boxplots, chemistry
+output$plodstchm <- renderPlot({
+  
+  # only do it a site has been selected
+  req(nrow(catslng()) > 0)
+  
+  # input
+  dstdat <- dstdat()
+  catslng <- catslng()
+  
+  # filter biodata
+  selvr <-  c('Total nitrogen', 'Total phosphorus', 'Conductivity')
+  toplodst <- dstdat %>% 
+    filter(var %in% selvr)
+  toplocats <- catslng %>% 
+    filter(var %in% selvr)
+  
+  p <- ggplot(toplodst, aes(x = var, y = val)) + 
+    geom_boxplot() + 
+    geom_hline(data = toplocats, aes(yintercept = val), colour = 'tomato1', size = 1) +
+    facet_wrap(~var, scales = 'free', ncol = length(selvr)) + 
+    theme_bw() + 
+    theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank(), 
+      axis.title = element_blank() 
+    )
+  
+  return(p)
+  
+}, width = 600)
+
+# distribution boxplots, habitat
+output$plodsthab <- renderPlot({
+  
+  # only do it a site has been selected
+  req(nrow(catslng()) > 0)
+  
+  # input
+  dstdat <- dstdat()
+  catslng <- catslng()
+  
+  # filter biodata
+  selvr <-  c('CRAM index score', '% sands and fines', 'SW diversity of aquatic habitat', 'SW diversity of streambed substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
+  toplodst <- dstdat %>% 
+    filter(var %in% selvr)
+  toplocats <- catslng %>% 
+    filter(var %in% selvr)
+  
+  p <- ggplot(toplodst, aes(x = var, y = val)) + 
+    geom_boxplot() + 
+    geom_hline(data = toplocats, aes(yintercept = val), colour = 'tomato1', size = 1) +
+    facet_wrap(~var, scales = 'free', ncol = length(selvr)) + 
+    theme_bw() + 
+    theme(
+      strip.background = element_blank(),
+      strip.text.x = element_blank(), 
+      axis.title = element_blank() 
+    )
+  
+  return(p)
+  
+})
 ```
 
 Sidebar {.sidebar data-width=700}
@@ -411,7 +571,7 @@ column(width = 12,
 ```
 
 ```{r}
-leafletOutput('map', height = 620)
+leafletOutput('map', height = 590)
 ```
 
 Overview
@@ -490,6 +650,30 @@ Column
                   shinydashboard::box(gaugeOutput('flowhab'), title = HTML('<h4><i>Evenness of flow habitat types:</i></h4>'), width = 2),
                   shinydashboard::box(gaugeOutput('veg'), title = HTML('<h4><i>Riparian veg. cover:<br></br></i></h4>'), width = 2)
  )
+```
+
+Relative details
+===================================== 
+
+Column 
+-----------------------------------------------------------------------
+
+### Biology
+
+```{r}
+plotOutput('plodstbio')
+```
+
+### Chemistry
+
+```{r}
+plotOutput('plodstchm')
+```
+
+### Habitat
+
+```{r}
+plotOutput('plodsthab')
 ```
 
 Scenario exploration
