@@ -29,7 +29,7 @@ data(cntys)
 
 # numeric variable names
 numnms <- c('CSCI', 'ASCI', 'TN2', 'TP', 'Cond', 'indexscore_cram', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
-numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', '% sands and fines', 'SW diversity of aquatic habitat', 'SW diversity of streambed substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
+numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', '% sands and fines', 'Diversity of aquatic habitat', 'Diversity of substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
 names(numnms) <- numlab
 
 # color lims
@@ -493,7 +493,7 @@ output$plodsthab <- renderPlot({
   catslng <- catslng()
   
   # filter biodata
-  selvr <-  c('CRAM index score', '% sands and fines', 'SW diversity of aquatic habitat', 'SW diversity of streambed substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
+  selvr <-  c('CRAM index score', '% sands and fines', 'Diversity of aquatic habitat', 'Diversity of substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
   toplodst <- dstdat %>% 
     filter(var %in% selvr)
   toplocats <- catslng %>% 
@@ -643,12 +643,12 @@ Column
 
 ```{r}
  column(width = 12,
-                  shinydashboard::box(gaugeOutput('cram'), title = HTML('<h4><i>CRAM index score:<br></br></i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('safn'), title = HTML('<h4><i>% sands and fines:<br></br></i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('aqhab'), title = HTML('<h4><i>SW diversity of aquatic habitat:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('subnat'), title = HTML('<h4><i>SW diversity of streambed substrate:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('flowhab'), title = HTML('<h4><i>Evenness of flow habitat types:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('veg'), title = HTML('<h4><i>Riparian veg. cover:<br></br></i></h4>'), width = 2)
+                  shinydashboard::box(gaugeOutput('cram', height = '500px'), title = HTML('<h4><i>CRAM index score:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('safn', height = '500px'), title = HTML('<h4><i>% sands and fines:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('aqhab', height = '500px'), title = HTML('<h4><i>Diversity of aquatic habitat:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('subnat', height = '500px'), title = HTML('<h4><i>Diversity of substrate:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('flowhab', height = '500px'), title = HTML('<h4><i>Evenness of flow habitat types:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('veg', height = '500px'), title = HTML('<h4><i>Riparian veg. cover:</i></h4>'), width = 2)
  )
 ```
 
@@ -728,8 +728,8 @@ fluidRow(
                      choices = list(
                        "CRAM" = "indexscore_cram",
                        "% sands and fines" = "PCT_SAFN",
-                       "SW diversity of aquatic habitats" = "H_AqHab",
-                       "SW diversity of streambed substrates" = "H_SubNat",
+                       "Diversity of aquatic habitats" = "H_AqHab",
+                       "Diversity of substrates" = "H_SubNat",
                        "Evenness of flow habitat types" = "Ev_FlowHab",
                        "Riparian veg cover" = "XCMG"
                      ),
@@ -742,8 +742,8 @@ fluidRow(
                      choices = list(
                        "CRAM" = "indexscore_cram",
                        "% sands and fines" = "PCT_SAFN",
-                       "SW diversity of aquatic habitats" = "H_AqHab",
-                       "SW diversity of streambed substrates" = "H_SubNat",
+                       "Diversity of aquatic habitats" = "H_AqHab",
+                       "Diversity of substrates" = "H_SubNat",
                        "Evenness of flow habitat types" = "Ev_FlowHab",
                        "Riparian veg cover" = "XCMG"
                      ),
