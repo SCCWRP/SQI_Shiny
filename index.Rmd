@@ -27,6 +27,9 @@ data(alldatavg)
 data(sheds)
 data(cntys)
 
+# gauge colors for boxplots
+ggecol <- c('#ff0000', '#f9c802', '#a9d70b')
+
 # numeric variable names
 numnms <- c('CSCI', 'ASCI', 'TN2', 'TP', 'Cond', 'indexscore_cram', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
 numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', '% sands and fines', 'Diversity of aquatic habitat', 'Diversity of substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
@@ -44,6 +47,11 @@ aqhablim <- c(0, 0.87, 1.74, 2.6)
 subnatlim <- c(0, 0.87, 1.74, 2.6)
 flowhablim <- c(0, 0.33, 0.66, 1)
 veglim <- c(0, 100, 200, 300)
+
+# for boxplot color limits
+collims <- list(cscilim, ascilim, tnlim, tplim, condlim, cramlim, safnlim, aqhablim, subnatlim, flowhablim, veglim)
+names(collims) <- numlab
+collims <- enframe(collims, 'var', 'lims')
 ```
 
 ```{r reactives}
@@ -328,98 +336,64 @@ output$asci <- renderGauge({
 })
 output$tn <- renderGauge({
   val <- round(cats()$TN2, 1)
-  gauge(val, min = tnlim[1], max = tnlim[4], gaugeSectors(
+  gauge(val, min = tnlim[4], max = tnlim[1], gaugeSectors(
      danger = tnlim[c(3, 4)], warning = tnlim[c(2, 3)], success = tnlim[c(1, 2)])
   )
 })
 output$tp <- renderGauge({
   val <- round(cats()$TP, 1)
-  gauge(val, min = 0, max = 4.5, gaugeSectors(
-     danger = c(3, 4.5), warning = c(1.5, 3), success = c(0, 1.5))
+  gauge(val, min = tplim[4], max = tplim[1], gaugeSectors(
+     danger = tplim[c(3, 4)], warning = tplim[c(2, 3)], success = tplim[c(1, 2)])
   )
 })
 output$cond <- renderGauge({
   val <- round(cats()$Cond, 1)
-  gauge(val, min = 0, max = 7050, gaugeSectors(
-     danger = c(4700, 7050), warning = c(2350, 4700), success = c(0, 2350))
+  gauge(val, min = condlim[4], max = condlim[1], gaugeSectors(
+     danger = condlim[c(3, 4)], warning = condlim[c(2, 3)], success = condlim[c(1, 2)])
   )
 })
 output$cram <- renderGauge({
   val <- round(cats()$indexscore_cram, 1)
-  gauge(val, min = 0, max = 100, gaugeSectors(
-     danger = c(0, 33), warning = c(33, 66), success = c(66, 100))
+  gauge(val, min = cramlim[1], max = cramlim[4], gaugeSectors(
+     danger = cramlim[c(1, 2)], warning = cramlim[c(2, 3)], success = cramlim[c(3, 4)])
   )
 })
 output$safn <- renderGauge({
   val <- round(cats()$PCT_SAFN, 1)
-  gauge(val, min = 0, max = 100, gaugeSectors(
-     danger = c(66, 100), warning = c(33, 66), success = c(0, 33))
+  gauge(val, min = safnlim[4], max = safnlim[1], gaugeSectors(
+     danger = safnlim[c(3, 4)], warning = safnlim[c(2, 3)], success = safnlim[c(1, 2)])
   )
 })
 output$aqhab <- renderGauge({
   val <- round(cats()$H_AqHab, 1)
-  gauge(val, min = 0, max = 2.6, gaugeSectors(
-     danger = c(0, .87), warning = c(0.87, 1.74), success = c(1.74, 2.6))
+  gauge(val, min = aqhablim[1], max = aqhablim[4], gaugeSectors(
+     danger = aqhablim[c(1, 2)], warning = aqhablim[c(2, 3)], success = aqhablim[c(3, 4)])
   )
 })
 output$subnat <- renderGauge({
   val <- round(cats()$H_SubNat, 1)
-  gauge(val, min = 0, max = 2.6, gaugeSectors(
-     danger = c(0, .87), warning = c(0.87, 1.74), success = c(1.74, 2.6))
+  gauge(val, min = subnatlim[1], max = subnatlim[4], gaugeSectors(
+     danger = subnatlim[c(1, 2)], warning = subnatlim[c(2, 3)], success = subnatlim[c(3, 4)])
   )
 })
 output$flowhab <- renderGauge({
   val <- round(cats()$Ev_FlowHab, 1)
-  gauge(val, min = 0, max = 1, gaugeSectors(
-     danger = c(0, .33), warning = c(0.33, 0.66), success = c(0.66, 1))
+  gauge(val, min = flowhablim[1], max = flowhablim[4], gaugeSectors(
+     danger = flowhablim[c(1, 2)], warning = flowhablim[c(2, 3)], success = flowhablim[c(3, 4)])
   )
 })
 output$veg <- renderGauge({
   val <- round(cats()$XCMG, 1)
-  gauge(val, min = 0, max = 300, gaugeSectors(
-     danger = c(0, 100), warning = c(100, 200), success = c(200, 300))
+  gauge(val, min = veglim[1], max = veglim[4], gaugeSectors(
+     danger = veglim[c(1, 2)], warning = veglim[c(2, 3)], success = veglim[c(3, 4)])
   )
 })
 
 ##
 # plots 
 
-# chemistry wq plots
-output$plochem <- renderPlot({
-  
-  # inputs
-  opt_vrs <- cats()
-  st_geometry(opt_vrs) <- NULL
-  opt_vrs <- opt_vrs %>% 
-    ungroup %>% 
-    select(TN2, TP, Cond) %>% 
-    as.list
-  plovrs <- c(input$chem1, input$chem2)
-
-  # the plot
-  strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'wq_mod', mod_in = 'wqgam', opt_vrs = opt_vrs)
-  
-}, height = 500)
-
-# chemistry wq plots
-output$plohab <- renderPlot({
-  
-  # inputs
-  opt_vrs <- cats()
-  st_geometry(opt_vrs) <- NULL
-  opt_vrs <- opt_vrs %>% 
-    ungroup %>% 
-    select(indexscore_cram, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG) %>% 
-    as.list
-  plovrs <- c(input$hab1, input$hab2)
-
-  # the plot
-  strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'hab_mod', mod_in = 'habgam', opt_vrs = opt_vrs)
-  
-}, height = 500)
-
 # distribution boxplots, biology
-output$plodstbio <- renderPlot({
+plodstbio <- reactive({
   
   # only do it a site has been selected
   req(nrow(catslng()) > 0)
@@ -430,25 +404,49 @@ output$plodstbio <- renderPlot({
   
   # filter biodata
   selvr <- c('CSCI', 'ASCI')
-  toplodst <- dstdat %>% 
-    filter(var %in% selvr)
-  toplocats <- catslng %>% 
-    filter(var %in% selvr)
+
+  # make plots
+  out <- dstdat %>% 
+    filter(var %in% selvr) %>% 
+    rename(
+      distval = val
+    ) %>% 
+    group_by(var) %>% 
+    nest %>% 
+    left_join(collims, by = 'var') %>% 
+    left_join(catslng, by = 'var') %>% 
+    mutate(
+      plos = purrr::pmap(list(as.character(var), data, lims, val), function(var, data, lims, val){
+        
+        # color limits
+        toplo <- data %>%
+          mutate(
+            val = val,
+            catsval = val,
+            catsval = cut(catsval, breaks = lims, labels = c('lo', 'md', 'hi'))
+            )
+        
+        # boxplot
+        p <- ggplot(toplo, aes(x = factor(var), y = distval)) + 
+          geom_boxplot() + 
+          geom_hline(aes(yintercept = val, colour = catsval), size = 1) +
+          theme_bw() + 
+          theme(
+            axis.title = element_blank(), 
+            legend.position = 'none'
+          ) +
+          xlab(var) + 
+          scale_colour_manual(values = rev(ggecol))
+        
+        return(p)
+        
+      })
+    ) %>% 
+    select(var, plos)
+
+  return(out)
   
-  p <- ggplot(toplodst, aes(x = var, y = val)) + 
-    geom_boxplot() + 
-    geom_hline(data = toplocats, aes(yintercept = val), colour = 'tomato1', size = 1) +
-    facet_wrap(~var, scales = 'free', ncol = length(selvr)) + 
-    theme_bw() + 
-    theme(
-      strip.background = element_blank(),
-      strip.text.x = element_blank(), 
-      axis.title = element_blank() 
-    )
-  
-  return(p)
-  
-}, width = 400)
+})
 
 # distribution boxplots, chemistry
 output$plodstchm <- renderPlot({
@@ -513,6 +511,40 @@ output$plodsthab <- renderPlot({
   return(p)
   
 })
+
+# chemistry prob scenario plots
+output$plochem <- renderPlot({
+  
+  # inputs
+  opt_vrs <- cats()
+  st_geometry(opt_vrs) <- NULL
+  opt_vrs <- opt_vrs %>% 
+    ungroup %>% 
+    select(TN2, TP, Cond) %>% 
+    as.list
+  plovrs <- c(input$chem1, input$chem2)
+
+  # the plot
+  strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'wq_mod', mod_in = 'wqgam', opt_vrs = opt_vrs)
+  
+}, height = 500)
+
+# habitat prob scenario plots
+output$plohab <- renderPlot({
+  
+  # inputs
+  opt_vrs <- cats()
+  st_geometry(opt_vrs) <- NULL
+  opt_vrs <- opt_vrs %>% 
+    ungroup %>% 
+    select(indexscore_cram, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG) %>% 
+    as.list
+  plovrs <- c(input$hab1, input$hab2)
+
+  # the plot
+  strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'hab_mod', mod_in = 'habgam', opt_vrs = opt_vrs)
+  
+}, height = 500)
 ```
 
 Sidebar {.sidebar data-width=700}
@@ -580,7 +612,7 @@ Overview
 Column {data-width=500}
 ------------------------------------------------------------------------
 
-###  Overall
+### Overall
 
 ```{r}
 flexdashboard::valueBoxOutput('overall')
@@ -661,7 +693,11 @@ Column
 ### Biology
 
 ```{r}
-plotOutput('plodstbio')
+# column(width = 12, 
+# shinydashboard::box(
+  renderPlot({plodstbio()$plos[[1]]}, width = 200) #, width = 12
+#   )
+# )
 ```
 
 ### Chemistry
