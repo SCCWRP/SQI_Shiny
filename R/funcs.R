@@ -238,3 +238,67 @@ strs_surf_dev <- function(xvar, yvar, mod_in, mod = c('hab_mod', 'wq_mod'), titl
   return(p)
 
 }
+
+# get relative distribution boxplots
+#
+# catslng observed data for selected site, all variables
+# dstdat all observed data for sites in selected region
+# selvr chr str of selected variables to plot
+# collims limits defining categories for selected variables
+# pal_exp color palette function for categories
+#
+dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp){
+  
+  # make plots
+  out <- dstdat %>% 
+    filter(var %in% selvr) %>% 
+    rename(
+      distval = val
+      ) %>% 
+    mutate(
+      var = factor(var, levels = selvr)
+    ) %>% 
+    arrange(var) %>% 
+    group_by(var) %>% 
+    nest %>% 
+    left_join(collims, by = 'var') %>% 
+    left_join(catslng, by = 'var') %>% 
+    mutate(
+      plos = purrr::pmap(list(as.character(var), data, lims, val), function(var, data, lims, val){
+        
+        # color limits
+        toplo <- data 
+        
+        # setup limits labels and breaks for increasing/decreasing
+        lbs <- c('lo', 'md', 'hi')
+        brks <- c(-Inf, lims[2], lims[3], Inf)
+        if(lims[1] > lims[2]){
+          lbs <- rev(lbs)
+          brks <- c(Inf, lims[2], lims[3], -Inf) 
+        }
+        valcat <- cut(val, breaks = brks, labels = lbs)
+        
+        # boxplot
+        p <- ggplot(toplo, aes(x = factor(var), y = distval)) + 
+          geom_boxplot(fill = scales::alpha('#99ccff', 0.3)) + 
+          geom_hline(aes(yintercept = val), colour = pal_exp(valcat), size = 3, alpha = 0.7) +
+          geom_hline(aes(yintercept = val), colour = pal_exp(valcat), size = 1, alpha = 1) +
+          theme_bw() + 
+          theme(
+            axis.title = element_blank(), 
+            legend.position = 'none'
+          ) +
+          xlab(var)
+        
+        if(var %in% c('Total nitrogen', 'Total phosphorus'))
+          p <- p + scale_y_log10()
+        
+        return(p)
+        
+      })
+    ) %>% 
+    select(plos)
+  
+  return(out)
+  
+}

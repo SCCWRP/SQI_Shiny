@@ -12,10 +12,10 @@ knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, echo = F)
 library(shiny)
 library(tidyverse)
 library(randomForest)
-library(gridExtra)
+library(patchwork)
 library(flexdashboard)
-# library(WQI)
-devtools::load_all('../WQI/.')
+library(WQI)
+# devtools::load_all('../WQI/.')
 library(mapview)
 library(leaflet)
 library(sf)
@@ -27,12 +27,9 @@ data(alldatavg)
 data(sheds)
 data(cntys)
 
-# gauge colors for boxplots
-ggecol <- c('#ff0000', '#f9c802', '#a9d70b')
-
 # numeric variable names
 numnms <- c('CSCI', 'ASCI', 'TN2', 'TP', 'Cond', 'indexscore_cram', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
-numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', '% sands and fines', 'Diversity of aquatic habitat', 'Diversity of substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
+numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', '% sands and fines', 'Diversity of habitat', 'Diversity of substrate', 'Evenness of flow habitat', 'Riparian veg. cover')
 names(numnms) <- numlab
 
 # color lims
@@ -42,7 +39,7 @@ tnlim <- c(34, 22, 11, 0)
 tplim <- c(4, 3, 1.5, 0)
 condlim <- c(7050, 4700, 2350, 0)
 cramlim <- c(0, 33, 66, 100)
-safnlim <- c(600, 66, 33, 0)
+safnlim <- c(100, 66, 33, 0)
 aqhablim <- c(0, 0.87, 1.74, 2.6)
 subnatlim <- c(0, 0.87, 1.74, 2.6)
 flowhablim <- c(0, 0.33, 0.66, 1)
@@ -52,6 +49,13 @@ veglim <- c(0, 100, 200, 300)
 collims <- list(cscilim, ascilim, tnlim, tplim, condlim, cramlim, safnlim, aqhablim, subnatlim, flowhablim, veglim)
 names(collims) <- numlab
 collims <- enframe(collims, 'var', 'lims')
+
+# color palette function for boxplots
+pal_exp <- colorFactor(
+  palette = c('#ff0000', '#f9c802', '#a9d70b'),
+  na.color = 'yellow',
+  levels = c('lo', 'md', 'hi'))
+
 ```
 
 ```{r reactives}
@@ -165,6 +169,66 @@ catslng <- reactive({
     mutate(
       var = factor(var, levels = numnms, labels = names(numnms))
     )
+  
+  return(out)
+  
+})
+
+# distribution boxplots, biology
+dstbio <- reactive({
+  
+  # only do it a site has been selected
+  req(nrow(catslng()) > 0)
+  
+  # input
+  dstdat <- dstdat()
+  catslng <- catslng()
+  
+  # filters
+  selvr <- numlab[c(1:2)]
+  
+  # get boxplots
+  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp)
+  
+  return(out)
+  
+})
+
+# distribution boxplots, chemistry
+dstchm <- reactive({
+  
+  # only do it a site has been selected
+  req(nrow(catslng()) > 0)
+  
+  # input
+  dstdat <- dstdat()
+  catslng <- catslng()
+  
+  # filters
+  selvr <- numlab[c(3:5)]
+  
+  # get boxplots
+  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp)
+  
+  return(out)
+  
+})
+
+# distribution boxplots, habitat
+dsthab <- reactive({
+  
+  # only do it a site has been selected
+  req(nrow(catslng()) > 0)
+  
+  # input
+  dstdat <- dstdat()
+  catslng <- catslng()
+  
+  # filters
+  selvr <- numlab[c(6:11)]
+  
+  # get boxplots
+  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp)
   
   return(out)
   
@@ -323,7 +387,7 @@ output$phab <- renderGauge({
 ##
 # detail gauge outputs
 output$csci <- renderGauge({
-  val <- round(cats()$CSCI, 1)
+  val <- round(cats()$CSCI, 2)
   gauge(val, min = cscilim[1], max = cscilim[4], gaugeSectors(
      danger = cscilim[c(1, 2)], warning = cscilim[c(2, 3)], success = cscilim[c(3, 4)])
   )
@@ -393,124 +457,37 @@ output$veg <- renderGauge({
 # plots 
 
 # distribution boxplots, biology
-plodstbio <- reactive({
-  
-  # only do it a site has been selected
-  req(nrow(catslng()) > 0)
+output$plodstbio <- renderPlot({
   
   # input
-  dstdat <- dstdat()
-  catslng <- catslng()
-  
-  # filter biodata
-  selvr <- c('CSCI', 'ASCI')
+  dstplo <- dstbio()
 
-  # make plots
-  out <- dstdat %>% 
-    filter(var %in% selvr) %>% 
-    rename(
-      distval = val
-    ) %>% 
-    group_by(var) %>% 
-    nest %>% 
-    left_join(collims, by = 'var') %>% 
-    left_join(catslng, by = 'var') %>% 
-    mutate(
-      plos = purrr::pmap(list(as.character(var), data, lims, val), function(var, data, lims, val){
-        
-        # color limits
-        toplo <- data %>%
-          mutate(
-            val = val,
-            catsval = val,
-            catsval = cut(catsval, breaks = lims, labels = c('lo', 'md', 'hi'))
-            )
-        
-        # boxplot
-        p <- ggplot(toplo, aes(x = factor(var), y = distval)) + 
-          geom_boxplot() + 
-          geom_hline(aes(yintercept = val, colour = catsval), size = 1) +
-          theme_bw() + 
-          theme(
-            axis.title = element_blank(), 
-            legend.position = 'none'
-          ) +
-          xlab(var) + 
-          scale_colour_manual(values = rev(ggecol))
-        
-        return(p)
-        
-      })
-    ) %>% 
-    select(var, plos)
-
-  return(out)
+  # patchwork
+  wrap_plots(dstplo$plos, nrow = 1)
   
-})
+}, height = 200)
 
 # distribution boxplots, chemistry
 output$plodstchm <- renderPlot({
   
-  # only do it a site has been selected
-  req(nrow(catslng()) > 0)
-  
   # input
-  dstdat <- dstdat()
-  catslng <- catslng()
+  dstplo <- dstchm()
+
+  # patchwork
+  wrap_plots(dstplo$plos, nrow = 1)
   
-  # filter biodata
-  selvr <-  c('Total nitrogen', 'Total phosphorus', 'Conductivity')
-  toplodst <- dstdat %>% 
-    filter(var %in% selvr)
-  toplocats <- catslng %>% 
-    filter(var %in% selvr)
-  
-  p <- ggplot(toplodst, aes(x = var, y = val)) + 
-    geom_boxplot() + 
-    geom_hline(data = toplocats, aes(yintercept = val), colour = 'tomato1', size = 1) +
-    facet_wrap(~var, scales = 'free', ncol = length(selvr)) + 
-    theme_bw() + 
-    theme(
-      strip.background = element_blank(),
-      strip.text.x = element_blank(), 
-      axis.title = element_blank() 
-    )
-  
-  return(p)
-  
-}, width = 600)
+}, height = 200)
 
 # distribution boxplots, habitat
 output$plodsthab <- renderPlot({
   
-  # only do it a site has been selected
-  req(nrow(catslng()) > 0)
-  
   # input
-  dstdat <- dstdat()
-  catslng <- catslng()
+  dstplo <- dsthab()
+
+  # patchwork
+  wrap_plots(dstplo$plos, nrow = 1)
   
-  # filter biodata
-  selvr <-  c('CRAM index score', '% sands and fines', 'Diversity of aquatic habitat', 'Diversity of substrate', 'Evenness of flow habitat types', 'Riparian veg. cover')
-  toplodst <- dstdat %>% 
-    filter(var %in% selvr)
-  toplocats <- catslng %>% 
-    filter(var %in% selvr)
-  
-  p <- ggplot(toplodst, aes(x = var, y = val)) + 
-    geom_boxplot() + 
-    geom_hline(data = toplocats, aes(yintercept = val), colour = 'tomato1', size = 1) +
-    facet_wrap(~var, scales = 'free', ncol = length(selvr)) + 
-    theme_bw() + 
-    theme(
-      strip.background = element_blank(),
-      strip.text.x = element_blank(), 
-      axis.title = element_blank() 
-    )
-  
-  return(p)
-  
-})
+}, height = 200)
 
 # chemistry prob scenario plots
 output$plochem <- renderPlot({
@@ -677,9 +654,9 @@ Column
  column(width = 12,
                   shinydashboard::box(gaugeOutput('cram', height = '500px'), title = HTML('<h4><i>CRAM index score:</i></h4>'), width = 2),
                   shinydashboard::box(gaugeOutput('safn', height = '500px'), title = HTML('<h4><i>% sands and fines:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('aqhab', height = '500px'), title = HTML('<h4><i>Diversity of aquatic habitat:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('aqhab', height = '500px'), title = HTML('<h4><i>Diversity of habitat:</i></h4>'), width = 2),
                   shinydashboard::box(gaugeOutput('subnat', height = '500px'), title = HTML('<h4><i>Diversity of substrate:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('flowhab', height = '500px'), title = HTML('<h4><i>Evenness of flow habitat types:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('flowhab', height = '500px'), title = HTML('<h4><i>Evenness of flow habitat:</i></h4>'), width = 2),
                   shinydashboard::box(gaugeOutput('veg', height = '500px'), title = HTML('<h4><i>Riparian veg. cover:</i></h4>'), width = 2)
  )
 ```
@@ -693,23 +670,19 @@ Column
 ### Biology
 
 ```{r}
-# column(width = 12, 
-# shinydashboard::box(
-  renderPlot({plodstbio()$plos[[1]]}, width = 200) #, width = 12
-#   )
-# )
+column(width = 5, plotOutput('plodstbio'))
 ```
 
 ### Chemistry
 
 ```{r}
-plotOutput('plodstchm')
+column(width = 8, plotOutput('plodstchm'))
 ```
 
 ### Habitat
 
 ```{r}
-plotOutput('plodsthab')
+column(width = 12, plotOutput('plodsthab'))
 ```
 
 Scenario exploration
@@ -764,9 +737,9 @@ fluidRow(
                      choices = list(
                        "CRAM" = "indexscore_cram",
                        "% sands and fines" = "PCT_SAFN",
-                       "Diversity of aquatic habitats" = "H_AqHab",
+                       "Diversity of habitat" = "H_AqHab",
                        "Diversity of substrates" = "H_SubNat",
-                       "Evenness of flow habitat types" = "Ev_FlowHab",
+                       "Evenness of flow habitat" = "Ev_FlowHab",
                        "Riparian veg cover" = "XCMG"
                      ),
                      selected = "indescore_cram"
@@ -778,9 +751,9 @@ fluidRow(
                      choices = list(
                        "CRAM" = "indexscore_cram",
                        "% sands and fines" = "PCT_SAFN",
-                       "Diversity of aquatic habitats" = "H_AqHab",
+                       "Diversity of habitat" = "H_AqHab",
                        "Diversity of substrates" = "H_SubNat",
-                       "Evenness of flow habitat types" = "Ev_FlowHab",
+                       "Evenness of flow habitat" = "Ev_FlowHab",
                        "Riparian veg cover" = "XCMG"
                      ),
                      selected = "PCT_SAFN"
