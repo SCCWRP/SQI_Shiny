@@ -1,5 +1,5 @@
 ---
-title: "WQI Shiny"
+title: "SQI Shiny"
 output: 
   flexdashboard::flex_dashboard
 runtime: shiny
@@ -14,8 +14,8 @@ library(tidyverse)
 library(randomForest)
 library(patchwork)
 library(flexdashboard)
-library(WQI)
-# devtools::load_all('../WQI/.')
+library(SQI)
+# devtools::load_all('../SQI/.')
 library(mapview)
 library(leaflet)
 library(sf)
@@ -332,7 +332,7 @@ observeEvent(input$map_marker_click, {
 })
 
 ##
-# WQI descriptor outputs
+# SQI descriptor outputs
 output$overall <- flexdashboard::renderValueBox({
   req(nrow(cats()) > 0)
   txtin <- cats()$StreamHealthIndex
@@ -558,7 +558,7 @@ column(width = 12,
        
   column(width = 6, 
                 
-    selectInput('tomap', 'WQI output:', 
+    selectInput('tomap', 'SQI output:', 
       choices = list(
         'Overall' = 'StreamHealthIndex', 
         'Biological condition' = 'BiologicalCondition',

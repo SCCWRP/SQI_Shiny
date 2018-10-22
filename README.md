@@ -1,3 +1,3 @@
 # README
 
-Materials for water quality index shiny app: [https://sccwrp.shinyapps.io/WQI_Shiny](https://sccwrp.shinyapps.io/WQI_Shiny)
+Materials for water quality index shiny app: [https://sccwrp.shinyapps.io/SQI_Shiny](https://sccwrp.shinyapps.io/SQI_Shiny)

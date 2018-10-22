@@ -1,0 +1,10 @@
+name: sqi_shiny
+title:
+username:
+account: sccwrp
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 527861
+bundleId: 1654988
+url: https://sccwrp.shinyapps.io/sqi_shiny/
+when: 1540183488.97656

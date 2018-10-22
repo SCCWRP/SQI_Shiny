@@ -392,7 +392,7 @@ library(tidyverse)
 library(mgcv)
 library(gridExtra)
 library(randomForest)
-library(WQI)
+library(SQI)
 library(caret)
 
 source('../R/funcs.R')
@@ -468,19 +468,19 @@ ests &lt;- alldat %&gt;%
         
       }
       
-      # wqi from gam
-      wqi_gam &lt;- wqi(x, wq_mod_in = wqgam, hab_mod_in = habgam) %&gt;% 
+      # sqi from gam
+      sqi_gam &lt;- sqi(x, wq_mod_in = wqgam, hab_mod_in = habgam) %&gt;% 
         select(BiologicalCondition, WaterChemistryCondition, HabitatCondition, OverallStressCondition, OverallStressCondition_detail, StreamHealthIndex) %&gt;% 
         rename_all(funs(paste0('gam_', .)))
       
-      # wqi from rf
-      wqi_rf &lt;- wqi(x) %&gt;% 
+      # sqi from rf
+      sqi_rf &lt;- sqi(x) %&gt;% 
         select(BiologicalCondition, WaterChemistryCondition, HabitatCondition, OverallStressCondition, OverallStressCondition_detail, StreamHealthIndex) %&gt;% 
         rename_all(funs(paste0('rf_', .)))
       
-      # combine wqi output
+      # combine sqi output
       x &lt;- x %&gt;% 
-        cbind(wqi_gam, wqi_rf)
+        cbind(sqi_gam, sqi_rf)
       
       return(x)
       
@@ -790,11 +790,11 @@ ggplot(toplo, aes(x = rf, y = gam)) +
 ## </code></pre>
 </div>
 </div>
-<div id="comparison-of-wqi-categories" class="section level2 tabset">
-<h2>Comparison of WQI categories</h2>
+<div id="comparison-of-sqi-categories" class="section level2 tabset">
+<h2>Comparison of SQI categories</h2>
 <p>Reference is results from RF model, Prediction is results from GAM</p>
-<div id="overall-wqi" class="section level3">
-<h3>Overall WQI</h3>
+<div id="overall-sqi" class="section level3">
+<h3>Overall SQI</h3>
 <pre class="r"><code>ests &lt;- ests %&gt;% 
   mutate_if(is.character, as.factor)
   

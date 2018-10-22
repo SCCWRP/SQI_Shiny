@@ -1,7 +1,7 @@
 library(dplyr)
 library(tidyr)
 library(sf)
-library(WQI)
+library(SQI)
 
 prj <- 4326 # geographic wgs84
 
@@ -9,7 +9,7 @@ prj <- 4326 # geographic wgs84
 # get all existing data 
 # obs for repeat visits are averaged for each site
 
-# input data and wqi scores as sf object
+# input data and sqi scores as sf object
 alldatavg <- read.csv('//172.16.1.5/Biology/SMC WQI_RM/Data/RawData/SMC_WQIapp_051618/WQI_App/alldata.csv', stringsAsFactors = F) %>% 
   mutate(date = as.Date(SampleDate2, format = '%m/%d/%Y')) %>% 
   select(MasterID, date, Latitude, Longitude, csci_mean, h20_mean, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG, indexscore_cram, Cond, TN2, TP) %>% 
@@ -21,14 +21,14 @@ alldatavg <- read.csv('//172.16.1.5/Biology/SMC WQI_RM/Data/RawData/SMC_WQIapp_0
   group_by(MasterID, var) %>% 
   summarise(val = mean(val, na.rm = T)) %>% 
   spread(var, val) %>% 
-  wqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
+  sqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
   st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj)
 
 ######
 # get all existing data 
 # same as above but repeats not averaged
 
-# input data and wqi scores as sf object
+# input data and sqi scores as sf object
 alldat <- read.csv('//172.16.1.5/Biology/SMC WQI_RM/Data/RawData/SMC_WQIapp_051618/WQI_App/alldata.csv', stringsAsFactors = F) %>% 
   mutate(date = as.Date(SampleDate2, format = '%m/%d/%Y')) %>% 
   select(MasterID, date, Latitude, Longitude, csci_mean, h20_mean, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG, indexscore_cram, Cond, TN2, TP) %>% 
@@ -36,7 +36,7 @@ alldat <- read.csv('//172.16.1.5/Biology/SMC WQI_RM/Data/RawData/SMC_WQIapp_0516
     CSCI = csci_mean,
     ASCI = h20_mean
   ) %>% 
-  wqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
+  sqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
   st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj)
 
 ######

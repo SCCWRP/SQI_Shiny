@@ -1,5 +1,5 @@
 # create models of probability of stressed biological condition
-# saved in wqi package repo
+# saved in sqi package repo
 
 library(tidyverse)
 library(mgcv)
@@ -69,9 +69,9 @@ habrf <- randomForest(y = as.factor(caldat$Bio_pf),
 
 ##
 # save models
-wqgam <- save(wqgam, file = '../WQI/data/wqgam.RData', compress = 'xz')
-habgam <- save(habgam, file = '../WQI/data/habgam.RData', compress = 'xz')
-wqrf <- save(wqrf, file = '../WQI/data/wqrf.RData', compress = 'xz')
-habrf <- save(habrf, file = '../WQI/data/habrf.RData', compress = 'xz')
+wqgam <- save(wqgam, file = '../SQI/data/wqgam.RData', compress = 'xz')
+habgam <- save(habgam, file = '../SQI/data/habgam.RData', compress = 'xz')
+wqrf <- save(wqrf, file = '../SQI/data/wqrf.RData', compress = 'xz')
+habrf <- save(habrf, file = '../SQI/data/habrf.RData', compress = 'xz')
 
 

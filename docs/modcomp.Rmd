@@ -12,7 +12,7 @@ library(tidyverse)
 library(mgcv)
 library(gridExtra)
 library(randomForest)
-library(WQI)
+library(SQI)
 library(caret)
 
 source('../R/funcs.R')
@@ -88,19 +88,19 @@ ests <- alldat %>%
         
       }
       
-      # wqi from gam
-      wqi_gam <- wqi(x, wq_mod_in = wqgam, hab_mod_in = habgam) %>% 
+      # sqi from gam
+      sqi_gam <- sqi(x, wq_mod_in = wqgam, hab_mod_in = habgam) %>% 
         select(BiologicalCondition, WaterChemistryCondition, HabitatCondition, OverallStressCondition, OverallStressCondition_detail, StreamHealthIndex) %>% 
         rename_all(funs(paste0('gam_', .)))
       
-      # wqi from rf
-      wqi_rf <- wqi(x) %>% 
+      # sqi from rf
+      sqi_rf <- sqi(x) %>% 
         select(BiologicalCondition, WaterChemistryCondition, HabitatCondition, OverallStressCondition, OverallStressCondition_detail, StreamHealthIndex) %>% 
         rename_all(funs(paste0('rf_', .)))
       
-      # combine wqi output
+      # combine sqi output
       x <- x %>% 
-        cbind(wqi_gam, wqi_rf)
+        cbind(sqi_gam, sqi_rf)
       
       return(x)
       
@@ -224,11 +224,11 @@ cnfmats$rfcnf[[3]]
 ```{r}
 cnfmats$rfcnf[[1]]
 ```
-## Comparison of WQI categories {.tabset}
+## Comparison of SQI categories {.tabset}
 
 Reference is results from RF model, Prediction is results from GAM
 
-### Overall WQI
+### Overall SQI
 
 ```{r}
 ests <- ests %>% 
