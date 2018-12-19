@@ -10,6 +10,11 @@ getdsccol <- function(dscin = NULL, palout = F, palfac = NULL){
   l3 <- '#FFB6C1' #'LightPink'
   l4 <- '#DC143C' #'Crimson'
   
+  # additional cols for specific sqi categories
+  l5 <- '#4F94CD' #'steelblue3'
+  l6 <- '#00C5CD' #'turquoise3'
+  l7 <- '#8B0000' #'red4'
+  
   if(palout) return(c(l1, l2, l3, l4))
 
   #  color categories
@@ -21,21 +26,21 @@ getdsccol <- function(dscin = NULL, palout = F, palfac = NULL){
   )                                   
   BiologicalCondition <- list(
     'Healthy' = l1,
-    'Impacted for BMI' = l2,
-    'Impacted for algae' = l3,
+    'Impacted for BMI' = l5,
+    'Impacted for algae' = l6,
     'Impacted for BMI and algae' = l4
   )
   OverallStressCondition <- list(
     'Low' = l1, 
-    'Moderate' = l3,
+    'Moderate' = l5,
     'Severe' = l4
   )
   OverallStressCondition_detail <- list(
     'Low stress' = l1, 
-    'Stressed by chemistry degradation' = l2,
-    'Stressed by habitat degradation' = l3,
+    'Stressed by chemistry degradation' = l5,
+    'Stressed by habitat degradation' = l6,
     'Stressed by chemistry and habitat degradation' = l4, 
-    'Stressed by low levels of chemistry or habitat degradation' = l1
+    'Stressed by low levels of chemistry or habitat degradation' = l7
   )
 
   # return individual palette with label is provided

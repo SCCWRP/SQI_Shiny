@@ -81,7 +81,7 @@ spaflt <- reactive({
   # input
   flby <- input$flby
   
-  if(flby == 'SMC regions')
+  if(flby == 'SMC watersheds')
     out <- sheds %>% 
       rename(polylab = SMC_Name)
           
@@ -105,7 +105,7 @@ polys <- reactive({
   flby <- input$flby
   flts <- input$flts
       
-  if(flby == 'SMC regions')
+  if(flby == 'SMC watersheds')
     out <- sheds %>% 
       rename(pllb = SMC_Name)
 
@@ -499,7 +499,7 @@ column(width = 12,
   
   column(width = 6, 
          
-    selectInput('flby', 'Filter by:', choices = c('SMC regions', 'Counties'))
+    selectInput('flby', 'Filter by:', choices = c('SMC watersheds', 'Counties'))
                 
   ), 
   
@@ -524,7 +524,7 @@ column(width = 12,
        
   column(width = 6, 
                 
-    selectInput('tomap', 'SQI output:', 
+    selectInput('tomap', 'SQI map output:', 
       choices = list(
         'Overall' = 'StreamHealthIndex', 
         'Biological condition' = 'BiologicalCondition',
@@ -559,17 +559,25 @@ Column {data-width=500}
 
 This interactive web page will allow you to explore SQI scores for stream sampling sites from the Stormwater Monitoring Coalition (SMC) Data Portal.  Start by selecting a site by clicking a location on the map to the left.  Scroll through the SQI **Scores**, score **Details**, and **Relative details** for the selected site using the menu selections on the top. 
 
-#### Background
+#### SQI structure
 
 The SQI combines biological, physical, and chemical data to provide an overall picture of stream quality.  
 
-```{r, out.width = "100%"}
+```{r, out.width = "75%", fig.align = 'center'}
 knitr::include_graphics("www/sqi_schem.PNG")
 ```
 
 Water chemistry (TN, TP, conductivity) and physical habitat (CRAM, PHAB metrics) provide information on in-stream stressors.   The CSCI (California Stream Condition Index) and ASCI (Algal Stream Condition Index) provide information on biological condition.  The stressor data are synthesized into a stressor index that describes the joint probability of stream condition being affected by chemistry or physical habitat stressors.  Similarly, the biological data are synthesized into an overall biological response index.  Together, the stressor and response indices proves the overall condition represented by the SQI.  
 
-The overall SQI score for a site (far right on the above figure) is based on the categorical combinations of stressor (unstressed, stressed) and biological (healthy, impacted) conditions.  Based on these combinations, a site is assigned one of four scores shown below.  
+#### SQI scores
+
+The SQI can describe stream quality relative to an overall score, the biological condition, the stress condition, and details about the stress condition.  This information can be viewed on the **Scores** tab and on the map using the dropdown menu:
+
+```{r, out.width = '35%', fig.align = 'center'}
+knitr::include_graphics('www/map_options.png')
+```
+
+The overall SQI score for a site (far right on the above figure) is based on the categorical combinations of stressor (unstressed, stressed) and biological (healthy, impacted) conditions.  Based on these combinations, a site is assigned one of four categorial scores shown below.  
 
 ```{r, out.width = "50%", fig.align = 'center'}
 knitr::include_graphics("www/sqi_scen.PNG")
