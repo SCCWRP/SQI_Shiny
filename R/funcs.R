@@ -26,9 +26,9 @@ getdsccol <- function(dscin = NULL, palout = F, palfac = NULL){
   )                                   
   BiologicalCondition <- list(
     'Healthy' = l1,
-    'Impacted for BMI' = l5,
-    'Impacted for algae' = l6,
-    'Impacted for BMI and algae' = l4
+    'Impacted for CSCI' = l5,
+    'Impacted for ASCI' = l6,
+    'Impacted for CSCI and ASCI' = l4
   )
   OverallStressCondition <- list(
     'Low' = l1, 

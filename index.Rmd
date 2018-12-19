@@ -571,17 +571,37 @@ Water chemistry (TN, TP, conductivity) and physical habitat (CRAM, PHAB metrics)
 
 #### SQI scores
 
-The SQI can describe stream quality relative to an overall score, the biological condition, the stress condition, and details about the stress condition.  This information can be viewed on the **Scores** tab and on the map using the dropdown menu:
+The SQI can describe stream quality relative to an overall score, the biological condition, the stress condition, and details about the stress condition.  This information for a selected site can be viewed on the **Scores** tab and for al sites on the map using the dropdown menu:
 
 ```{r, out.width = '35%', fig.align = 'center'}
 knitr::include_graphics('www/map_options.png')
 ```
 
-The overall SQI score for a site (far right on the above figure) is based on the categorical combinations of stressor (unstressed, stressed) and biological (healthy, impacted) conditions.  Based on these combinations, a site is assigned one of four categorial scores shown below.  
+The overall SQI score for a site (far right on the above figure) is based on the categorical combinations of biological (healthy, impacted) and stressor (unstressed, stressed) conditions.  Based on these combinations, a site is assigned one of four categorical scores shown below.  
 
 ```{r, out.width = "50%", fig.align = 'center'}
 knitr::include_graphics("www/sqi_scen.PNG")
 ```
+
+Individual components that are used to create the overall SQI score are also categorized.  The biological condition at a site is assigned to one of four categories shown below based on observed CSCI and ASCI scores. 
+
+```{r, out.width = "50%", fig.align = 'center'}
+knitr::include_graphics("www/sqi_bio.PNG")
+```
+
+The stress condition at a site is assigned one of three levels based on chemical and habitat conditions.
+
+```{r, out.width = "60%", fig.align = 'center'}
+knitr::include_graphics("www/sqi_str.PNG")
+```
+
+Details about the stress condition are based on occurrence of chemical and habitat stressors.
+
+```{r, out.width = "80%", fig.align = 'center'}
+knitr::include_graphics("www/sqi_strdet.PNG")
+```
+
+The stress categories are based on a modelled probability of observing chemistry stressors, habitat stressors, none, both, or stress attributed to neither.  The probability of biology being impacted by different combinations of stressors can be viewed on the **Scores** tab.
 
 Scores
 =====================================
