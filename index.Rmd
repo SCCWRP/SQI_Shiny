@@ -1,5 +1,5 @@
 ---
-title: "SQI Shiny"
+title: "SQI dashboard"
 output: 
   flexdashboard::flex_dashboard
 runtime: shiny
@@ -465,7 +465,7 @@ output$plodstbio <- renderPlot({
   # patchwork
   wrap_plots(dstplo$plos, nrow = 1)
   
-}, height = 200)
+})
 
 # distribution boxplots, chemistry
 output$plodstchm <- renderPlot({
@@ -476,7 +476,7 @@ output$plodstchm <- renderPlot({
   # patchwork
   wrap_plots(dstplo$plos, nrow = 1)
   
-}, height = 200)
+})
 
 # distribution boxplots, habitat
 output$plodsthab <- renderPlot({
@@ -487,41 +487,7 @@ output$plodsthab <- renderPlot({
   # patchwork
   wrap_plots(dstplo$plos, nrow = 1)
   
-}, height = 200)
-
-# chemistry prob scenario plots
-output$plochem <- renderPlot({
-  
-  # inputs
-  opt_vrs <- cats()
-  st_geometry(opt_vrs) <- NULL
-  opt_vrs <- opt_vrs %>% 
-    ungroup %>% 
-    select(TN2, TP, Cond) %>% 
-    as.list
-  plovrs <- c(input$chem1, input$chem2)
-
-  # the plot
-  strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'wq_mod', mod_in = 'wqgam', opt_vrs = opt_vrs)
-  
-}, height = 500)
-
-# habitat prob scenario plots
-output$plohab <- renderPlot({
-  
-  # inputs
-  opt_vrs <- cats()
-  st_geometry(opt_vrs) <- NULL
-  opt_vrs <- opt_vrs %>% 
-    ungroup %>% 
-    select(indexscore_cram, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG) %>% 
-    as.list
-  plovrs <- c(input$hab1, input$hab2)
-
-  # the plot
-  strs_surf(xvar = plovrs[1], yvar = plovrs[2], mod = 'hab_mod', mod_in = 'habgam', opt_vrs = opt_vrs)
-  
-}, height = 500)
+})
 ```
 
 Sidebar {.sidebar data-width=700}
@@ -580,10 +546,36 @@ column(width = 12,
 ```
 
 ```{r}
-leafletOutput('map', height = 590)
+leafletOutput('map', height = 580)
 ```
 
 Overview
+=====================================
+
+Column {data-width=500}
+------------------------------------------------------------------------
+
+### Welcome to the Stream Quality Index (SQI) dashboard!
+
+This interactive web page will allow you to explore SQI scores for stream sampling sites from the Stormwater Monitoring Coalition (SMC) Data Portal.  Start by selecting a site by clicking a location on the map to the left.  Scroll through the SQI **Scores**, score **Details**, and **Relative details** for the selected site using the menu selections on the top. 
+
+#### Background
+
+The SQI combines biological, physical, and chemical data to provide an overall picture of stream quality.  
+
+```{r, out.width = "100%"}
+knitr::include_graphics("www/sqi_schem.PNG")
+```
+
+Water chemistry (TN, TP, conductivity) and physical habitat (CRAM, PHAB metrics) provide information on in-stream stressors.   The CSCI (California Stream Condition Index) and ASCI (Algal Stream Condition Index) provide information on biological condition.  The stressor data are synthesized into a stressor index that describes the joint probability of stream condition being affected by chemistry or physical habitat stressors.  Similarly, the biological data are synthesized into an overall biological response index.  Together, the stressor and response indices proves the overall condition represented by the SQI.  
+
+The overall SQI score for a site (far right on the above figure) is based on the categorical combinations of stressor (unstressed, stressed) and biological (healthy, impacted) conditions.  Based on these combinations, a site is assigned one of four scores shown below.  
+
+```{r, out.width = "50%", fig.align = 'center'}
+knitr::include_graphics("www/sqi_scen.PNG")
+```
+
+Scores
 =====================================
 
 Column {data-width=500}
@@ -641,11 +633,11 @@ Column
 ### Chemistry
 
 ```{r}
- column(width = 12,
-                  shinydashboard::box(gaugeOutput('tn'), title = HTML('<h4><i>Total nitrogen:</i></h4>'), width = 3),
-                  shinydashboard::box(gaugeOutput('tp'), title = HTML('<h4><i>Total phosphorus:</i></h4>'), width = 3),
-                  shinydashboard::box(gaugeOutput('cond'), title = HTML('<h4><i>Conductivity:</i></h4>'), width = 3)
- )
+column(12, 
+  shinydashboard::box(gaugeOutput('tn'), title = HTML('<h4><i>Total nitrogen:</i></h4>'), width = 3),
+  shinydashboard::box(gaugeOutput('tp'), title = HTML('<h4><i>Total phosphorus:</i></h4>'), width = 3),
+  shinydashboard::box(gaugeOutput('cond'), title = HTML('<h4><i>Conductivity:</i></h4>'), width = 3)
+)
 ```
 
 ### Habitat
@@ -670,97 +662,17 @@ Column
 ### Biology
 
 ```{r}
-column(width = 5, plotOutput('plodstbio'))
+plotOutput('plodstbio')
 ```
 
 ### Chemistry
 
 ```{r}
-column(width = 8, plotOutput('plodstchm'))
+plotOutput('plodstchm')
 ```
 
 ### Habitat
 
 ```{r}
-column(width = 12, plotOutput('plodsthab'))
+plotOutput('plodsthab')
 ```
-
-Scenario exploration
-===================================================
-
-Rows
-------------------------
-
-### Scenario exploration
-
-```{r}
-# plot outputs
-fluidRow(
-  
-  column(width = 12, 
-         h5('Selected values beyond those on the x and y axes are shown at the plot margins.')
-         ),
-  
-  # chemistry plots
-  column(width = 6, 
-
-         # first chem input
-         selectInput("chem1", 
-           label = 'x-axis chemistry variable', 
-           choices = list(
-             "Total Nitrogen" = "TN2",
-             "Total Phosphorus" = "TP",
-             "Conductivity" = "Cond"
-           ),
-           selected = "TN2"
-        ),
-  
-        # second chem input
-        selectInput("chem2", 
-                    label = 'y-axis chemistry variable', 
-                    choices = list(
-                      "Total Nitrogen" = "TN2",
-                      "Total Phosphorus" = "TP",
-                      "Conductivity" = "Cond"
-                    ),
-                    selected = "TP"
-        ),
-        plotOutput('plochem')
-      ),
-  
-  # habitat plots
-  column(width = 6, 
-         
-         # first hab input
-         selectInput("hab1", 
-                     label = 'x-axis habitat variable', 
-                     choices = list(
-                       "CRAM" = "indexscore_cram",
-                       "% sands and fines" = "PCT_SAFN",
-                       "Diversity of habitat" = "H_AqHab",
-                       "Diversity of substrates" = "H_SubNat",
-                       "Evenness of flow habitat" = "Ev_FlowHab",
-                       "Riparian veg cover" = "XCMG"
-                     ),
-                     selected = "indescore_cram"
-         ),
-
-         # second hab input
-         selectInput("hab2", 
-                     label = 'y-axis habitat variable', 
-                     choices = list(
-                       "CRAM" = "indexscore_cram",
-                       "% sands and fines" = "PCT_SAFN",
-                       "Diversity of habitat" = "H_AqHab",
-                       "Diversity of substrates" = "H_SubNat",
-                       "Evenness of flow habitat" = "Ev_FlowHab",
-                       "Riparian veg cover" = "XCMG"
-                     ),
-                     selected = "PCT_SAFN"
-         ),
-         
-         plotOutput('plohab')
-  )
-)
-```
-
