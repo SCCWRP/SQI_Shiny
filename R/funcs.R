@@ -69,8 +69,9 @@ getdsccol <- function(dscin = NULL, palout = F, palfac = NULL){
 # selvr chr str of selected variables to plot
 # collims limits defining categories for selected variables
 # pal_exp color palette function for categories
+# box logical indicating if boxplots or density histograms are produced
 #
-dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp){
+dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp, box = T){
 
   # make plots
   out <- dstdat %>% 
@@ -100,21 +101,61 @@ dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp){
           brks <- c(Inf, lims[2], lims[3], -Inf) 
         }
         valcat <- cut(val, breaks = brks, labels = lbs)
-        
+
         # boxplot
-        p <- ggplot(toplo, aes(x = factor(var), y = distval)) + 
-          geom_boxplot(fill = scales::alpha('#99ccff', 0.3)) + 
-          geom_hline(aes(yintercept = val), colour = pal_exp(valcat), size = 3, alpha = 0.7) +
-          geom_hline(aes(yintercept = val), colour = pal_exp(valcat), size = 1, alpha = 1) +
+        if(box){
+          
+          p <- ggplot(toplo, aes(x = factor(var), y = distval)) + 
+            geom_boxplot(fill = scales::alpha('#99ccff', 0.3)) + 
+            geom_hline(aes(yintercept = val), colour = pal_exp(valcat), size = 3, alpha = 0.7) +
+            geom_hline(aes(yintercept = val), colour = pal_exp(valcat), size = 1, alpha = 1) +
+            theme(axis.title.x = element_blank())
+          
+        } else {
+          
+          # # get bins, have to use this for scaling density
+          # if(var %in% c('Total nitrogen', 'Total phosphorus')){
+          #   bins <- log10(1 + toplo$distval) %>%
+          #     range %>%
+          #     diff
+          #   
+          # } else {
+          #   bins <- toplo$distval %>%
+          #     range %>%
+          #     diff
+          # }
+          # bins <- bins/25
+        
+          p <- ggplot(toplo, aes(x = distval)) + 
+            geom_histogram(aes(y=..density..), fill = 'black', alpha = 0.2) + 
+            geom_density(aes(y=..density..), fill = scales::alpha('#99ccff', 0.4)) +
+            geom_rug(alpha = 1/2) +
+            geom_vline(aes(xintercept = val), colour = pal_exp(valcat), size = 3, alpha = 0.7) +
+            geom_vline(aes(xintercept = val), colour = pal_exp(valcat), size = 1, alpha = 1) + 
+            theme(
+              axis.title.y = element_blank(),
+              panel.grid = element_blank()
+            )
+          
+        }
+        
+        # add plot themes  
+        p <- p +
           theme_bw() + 
           theme(
-            axis.title = element_blank(), 
-            legend.position = 'none'
+            axis.title.y = element_blank(),
+            legend.position = 'none', 
+            panel.grid = element_blank()
           ) +
           xlab(var)
         
-        if(var %in% c('Total nitrogen', 'Total phosphorus'))
-          p <- p + scale_y_log10()
+        # log-axes if tn, tp
+        if(var %in% c('Total nitrogen', 'Total phosphorus')){
+          if(box)
+            p <- p + scale_y_log10()
+          else
+            p <- p + scale_x_log10()
+        }
         
         return(p)
         

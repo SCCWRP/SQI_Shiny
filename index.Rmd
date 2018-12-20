@@ -150,7 +150,7 @@ dstdat <- reactive({
       var = factor(var, levels = numnms, labels = names(numnms)),
       val = as.numeric(val)
     )
-  
+
   return(out)
   
 })
@@ -168,7 +168,8 @@ catslng <- reactive({
     gather('var', 'val') %>% 
     filter(var %in% numnms) %>% 
     mutate(
-      var = factor(var, levels = numnms, labels = names(numnms))
+      var = factor(var, levels = numnms, labels = names(numnms)), 
+      val = as.numeric(val)
     )
   
   return(out)
@@ -187,9 +188,9 @@ dstbio <- reactive({
   
   # filters
   selvr <- numlab[c(1:2)]
-  
+
   # get boxplots
-  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp)
+  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
   
   return(out)
   
@@ -209,7 +210,7 @@ dstchm <- reactive({
   selvr <- numlab[c(3:5)]
   
   # get boxplots
-  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp)
+  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
   
   return(out)
   
@@ -229,7 +230,7 @@ dsthab <- reactive({
   selvr <- numlab[c(6:11)]
   
   # get boxplots
-  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp)
+  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
   
   return(out)
   
@@ -572,7 +573,7 @@ The SQI combines biological, physical, and chemical data to provide an overall p
 knitr::include_graphics("www/sqi_schem.PNG")
 ```
 
-Water chemistry (TN, TP, conductivity) and physical habitat (CRAM, PHAB metrics) provide information on in-stream stressors.   The CSCI (California Stream Condition Index) and ASCI (Algal Stream Condition Index) provide information on biological condition.  The stressor data are synthesized into a stressor index that describes the joint probability of stream condition being affected by chemistry or physical habitat stressors.  Similarly, the biological data are synthesized into an overall biological response index.  Together, the stressor and response indices proves the overall condition represented by the SQI.  
+Water chemistry (TN, TP, conductivity) and physical habitat (CRAM, PHAB metrics) provide information on in-stream stressors.   The CSCI (California Stream Condition Index) and ASCI (Algal Stream Condition Index) provide information on biological condition.  The stressor data are synthesized into a stressor index that describes the joint probability of stream condition being affected by chemistry or physical habitat stressors.  Similarly, the biological data are synthesized into an overall biological response index.  Together, the stressor and response indices describe the overall condition represented by the SQI.  
 
 #### SQI scores
 
