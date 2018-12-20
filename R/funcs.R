@@ -71,7 +71,7 @@ getdsccol <- function(dscin = NULL, palout = F, palfac = NULL){
 # pal_exp color palette function for categories
 #
 dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp){
-  
+
   # make plots
   out <- dstdat %>% 
     filter(var %in% selvr) %>% 
@@ -88,7 +88,7 @@ dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp){
     left_join(catslng, by = 'var') %>% 
     mutate(
       plos = purrr::pmap(list(as.character(var), data, lims, val), function(var, data, lims, val){
-        
+
         # color limits
         toplo <- data 
         

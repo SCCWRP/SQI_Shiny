@@ -147,7 +147,8 @@ dstdat <- reactive({
     gather('var', 'val') %>% 
     filter(var %in% numnms) %>% 
     mutate(
-      var = factor(var, levels = numnms, labels = names(numnms))
+      var = factor(var, levels = numnms, labels = names(numnms)),
+      val = as.numeric(val)
     )
   
   return(out)
@@ -179,7 +180,7 @@ dstbio <- reactive({
   
   # only do it a site has been selected
   req(nrow(catslng()) > 0)
-  
+
   # input
   dstdat <- dstdat()
   catslng <- catslng()
@@ -557,6 +558,10 @@ Column {data-width=500}
 
 ### Welcome to the Stream Quality Index (SQI) dashboard!
 
+<br>
+<img src="www/logos.png" width="300">
+<br>
+
 This interactive web page will allow you to explore SQI scores for stream sampling sites from the Stormwater Monitoring Coalition (SMC) Data Portal.  Start by selecting a site by clicking a location on the map to the left.  Scroll through the SQI **Scores**, score **Details**, and **Relative details** for the selected site using the menu selections on the top. 
 
 #### SQI structure
@@ -571,9 +576,9 @@ Water chemistry (TN, TP, conductivity) and physical habitat (CRAM, PHAB metrics)
 
 #### SQI scores
 
-The SQI can describe stream quality relative to an overall score, the biological condition, the stress condition, and details about the stress condition.  This information for a selected site can be viewed on the **Scores** tab and for al sites on the map using the dropdown menu:
+The SQI can describe stream quality relative to an overall score, the biological condition, the stress condition, and details about the stress condition.  This information for a selected site can be viewed on the **Scores** tab and for all sites on the map using the dropdown menu:
 
-```{r, out.width = '35%', fig.align = 'center'}
+```{r, out.width = '50%', fig.align = 'center'}
 knitr::include_graphics('www/map_options.png')
 ```
 
@@ -583,25 +588,51 @@ The overall SQI score for a site (far right on the above figure) is based on the
 knitr::include_graphics("www/sqi_scen.PNG")
 ```
 
-Individual components that are used to create the overall SQI score are also categorized.  The biological condition at a site is assigned to one of four categories shown below based on observed CSCI and ASCI scores. 
+Biological and stressor components that are used to create the overall SQI score are also categorized.  The biological condition at a site is assigned to one of four categories shown below based on observed CSCI and ASCI scores. 
 
 ```{r, out.width = "50%", fig.align = 'center'}
 knitr::include_graphics("www/sqi_bio.PNG")
 ```
 
-The stress condition at a site is assigned one of three levels based on chemical and habitat conditions.
+The stress condition at a site is also assigned to one of three levels based on the overall likelihood of being stressed by chemical and/or habitat conditions.
 
 ```{r, out.width = "60%", fig.align = 'center'}
 knitr::include_graphics("www/sqi_str.PNG")
 ```
 
-Details about the stress condition are based on occurrence of chemical and habitat stressors.
+Details about the stress condition can also be viewed.
 
 ```{r, out.width = "80%", fig.align = 'center'}
 knitr::include_graphics("www/sqi_strdet.PNG")
 ```
 
-The stress categories are based on a modelled probability of observing chemistry stressors, habitat stressors, none, both, or stress attributed to neither.  The probability of biology being impacted by different combinations of stressors can be viewed on the **Scores** tab.
+The stress categories above are based on a modelled probability of biology being impacted by different combinations of stressors.  This information can be viewed on the **Scores** tab as the probability of chemistry stress, habitat stress, and overall stress as the product of the two.  For example, this site an overall "moderate" stress condition (based on probability of overall stress) and stress condition detail as "stressed by chemistry degradation".
+
+```{r, out.width = "80%", fig.align = 'center'}
+knitr::include_graphics("www/strpr_ex.PNG")
+```
+
+#### Details
+
+The **Details** tab shows the observed biological, chemistry, and habitat data that were collected at the selected site.  This information was used to create the underlying model of the SQI.  These data include:
+
+* Biology: CSCI, ASCI
+
+* Chemistry: total nitrogen (mg/L), total phosphorus (mg/L), conductivity (uS/cm)
+
+* Habitat: CRAM index score, % sands and fines, diversity of habitat, diversity of substrate, evenness of flow habitat, riparian vegetation cover
+
+In general, higher CSCI and ASCI scores indicate more intact biological communities.  Higher values for total nitrogen, total phosphorus, and conductivity are associated with higher likelihood of chemistry degradation.  Lower values for the habitat variables are associated with higher likelihood of habitat degradation, except % sands and fines where higher values are associated with higher likelihood.
+
+#### Relative details
+
+The **Relative details** tab repeats information on the **Details** tab for the selected site, with the addition of a relative context for the observed data.  The observed values are shown relative to the distribution of values across all sites on the map.  This information can be used to help characterize which components of the SQI are potentially driving the site scores.  
+
+The spatial filters on the top left determine how the relative values are calculated.  For example, selecting only one watershed will plot the observed values for the selected site against all other values for that watershed.  This information can help place the observed values for the selected site in a more spatially relevant context, as compared to looking at relative values for the entire region.  Sites can be filtered by SMC watersheds, counties, or Water Board regional boundaries.
+
+#### Attribution
+
+This work is licensed under the Creative Commons [CC0](https://tldrlegal.com/license/creative-commons-cc0-1.0-universal). These are preliminary results, and are subject to change. For questions, contact [Marcus Beck](mailto:marcusb@sccwrp.org) or [Ken Schiff](mailto:kens@sccwrp.org).  Please visit [here](https://github.com/SCCWRP/SQI_Shiny) to view the web page source content. 
 
 Scores
 =====================================
@@ -636,11 +667,13 @@ flexdashboard::valueBoxOutput('strsdet')
 ### Probability of stress
 
 ```{r}
- column(width = 12,
-                  shinydashboard::box(gaugeOutput('pchemhab'), title = HTML('<h4><i>Prob. of overall stress:</i></h4>'), width = 4),
-                  shinydashboard::box(gaugeOutput('pchem'), title = HTML('<h4><i>Prob. of chemistry stress:</i></h4>'), width = 4),
-                  shinydashboard::box(gaugeOutput('phab'), title = HTML('<h4><i>Prob. of habitat stress:</i></h4>'), width = 4)
-           )
+column(width = 12,
+shinydashboard::box(gaugeOutput('pchem'), title = HTML('<h4><i>Pr. of chemistry stress:</i></h4>'), width = 3),
+column(width = 1, HTML('<br><br><br><br><img src="www/mult.png" width="20" height="20">')),
+shinydashboard::box(gaugeOutput('phab'), title = HTML('<h4><i>Pr. of habitat stress:</i></h4>'), width = 3),
+column(width = 1, HTML('<br><br><br><br><img src="www/equal.png" width="20" height="20">')),
+shinydashboard::box(gaugeOutput('pchemhab'), title = HTML('<h4><i>Pr. of overall stress:</i></h4>'), width = 3)
+)
 ```
 
 Details
