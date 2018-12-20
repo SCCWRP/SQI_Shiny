@@ -26,6 +26,7 @@ source("R/funcs.R")
 data(alldatavg)
 data(sheds)
 data(cntys)
+data(rwqbs)
 
 # numeric variable names
 numnms <- c('CSCI', 'ASCI', 'TN2', 'TP', 'Cond', 'indexscore_cram', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
@@ -89,6 +90,10 @@ spaflt <- reactive({
     out <- cntys %>% 
       rename(polylab = cnty)
   
+  if(flby == 'Regional boards')
+    out <- rwqbs %>% 
+      rename(polylab = RBNAME)
+  
   out <- out %>% 
     pull(polylab) %>% 
     sort %>% 
@@ -112,6 +117,10 @@ polys <- reactive({
   if(flby == 'Counties')
     out <- cntys %>% 
       rename(pllb = cnty)
+  
+  if(flby == 'Regional boards')
+    out <- rwqbs %>% 
+      rename(pllb = RBNAME)
   
   # filter by selection
   out <- out %>% 
@@ -501,7 +510,7 @@ column(width = 12,
   
   column(width = 6, 
          
-    selectInput('flby', 'Filter by:', choices = c('SMC watersheds', 'Counties'))
+    selectInput('flby', 'Filter by:', choices = c('SMC watersheds', 'Counties', 'Regional boards'))
                 
   ), 
   

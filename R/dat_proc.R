@@ -60,15 +60,28 @@ sheds <- st_read('S:/Spatial_Data/SMCBasefiles/Boundaries/SMCSheds/SMCSheds2009/
   select(SMC_Name) %>% 
   mutate_if(is.factor, as.character)
 
+# regional water quality board boundaries
+rwqbs <- st_read('S:/Spatial_Data/RWQCBdistricts/rwqcbnda.shp') %>%
+  st_as_sf %>% 
+  st_transform(crs = prj) %>% 
+  select(RBNAME) %>% 
+  filter(RBNAME %in% c('Los Angeles', 'San Diego', 'Santa Ana')) %>% 
+  group_by(RBNAME) %>% 
+  summarize() %>% 
+  mutate_if(is.factor, as.character)
+
 # get intersection with sample data
 alldat <- alldat %>% 
   st_intersection(cntys) %>% 
-  st_intersection(sheds)
+  st_intersection(sheds) %>% 
+  st_intersection(rwqbs)
 alldatavg <- alldatavg %>% 
   st_intersection(cntys) %>% 
-  st_intersection(sheds)
+  st_intersection(sheds) %>% 
+  st_intersection(rwqbs)
 
 save(cntys, file = 'data/cntys.RData', compress = 'xz')
 save(sheds, file = 'data/sheds.RData', compress = 'xz')
+save(rwqbs, file = 'data/rwqbs.RData', compress = 'xz')
 save(alldat, file = 'data/alldat.RData', compress = 'xz')
 save(alldatavg, file = 'data/alldatavg.RData', compress = 'xz')
