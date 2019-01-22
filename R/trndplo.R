@@ -1,7 +1,7 @@
 library(tidyverse)
 library(sf)
 data(alldat)
-
+source('R/funcs.R')
 # dups <- alldat[duplicated(alldat$MasterID),]
 
 dupstat <- '801WE1132'
