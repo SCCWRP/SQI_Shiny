@@ -15,7 +15,7 @@ getdsccol <- function(dscin = NULL, palout = F, palfac = NULL){
   l6 <- '#00C5CD' #'turquoise3'
   l7 <- '#8B0000' #'red4'
   
-  if(palout) return(c(l1, l2, l3, l4))
+  if(palout) return(c(l1, l2, l3, l4, l5, l6, l7))
 
   #  color categories
   StreamHealthIndex <- list(
