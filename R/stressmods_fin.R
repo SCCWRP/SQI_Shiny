@@ -1,10 +1,10 @@
 # create models of probability of stressed biological condition
 # saved in sqi package repo
-
 library(tidyverse)
 library(mgcv)
 library(randomForest)
 library(lubridate)
+library(readxl)
 
 # lookup table of bio BCG class, corresponding score, and combined categorical score
 xwalk <- read.csv('raw/scoring_xwalk.csv', stringsAsFactors = F)
@@ -14,11 +14,12 @@ xwalk <- read.csv('raw/scoring_xwalk.csv', stringsAsFactors = F)
 
 # original file from rafi
 orig <- read.csv('raw/CombinedData_112417.csv', stringsAsFactors = F) %>% 
-  select(MasterID, SampleDate2, Latitude, Longitude, csci_mean, indexscore_cram, Cond, TN2, TP) %>% 
+  select(MasterID, SampleDate2, Latitude, Longitude, indexscore_cram, csci_mean, Cond, TN2, TP) %>% 
   mutate(
-    date = mdy(SampleDate2)
+    date = mdy(SampleDate2),
+    yr = year(date)
   ) %>% 
-  dplyr::select(-SampleDate2)
+  dplyr::select(-SampleDate2, -date)
 
 # getting asci
 asci <- read.csv('raw/asci.scores.csv', stringsAsFactors = FALSE) %>% 
@@ -31,9 +32,10 @@ asci <- read.csv('raw/asci.scores.csv', stringsAsFactors = FALSE) %>%
     MasterID = gsub('^(.*)_.*_.*$', '\\1', sampleid),
     date = gsub('^.*_(.*)_.*$', '\\1', sampleid), 
     smps = gsub('^.*_.*_(.*)$', '\\1', sampleid),
-    date = lubridate::mdy(date)
+    date = mdy(date),
+    yr = year(date)
   ) %>% 
-  group_by(MasterID, date) %>% 
+  group_by(MasterID, yr) %>% 
   summarize(asci_mean = mean(asci_mean, na.rm = T))
 
 # getting ipi scores, phab scores
@@ -44,17 +46,42 @@ ipiscr <- read.csv('raw/ipiscr.csv', stringsAsFactors = F) %>%
     date = SampleDate
   ) %>% 
   mutate(
-    date = mdy(date)
+    yr = mdy(date), 
+    yr = year(yr)
   ) %>% 
-  gather('var', 'val', -MasterID, -date) %>% 
+  dplyr::select(-date) %>% 
+  gather('var', 'val', -MasterID, -yr) %>% 
   mutate(
     var = gsub('\\_score$', '', var)
   ) %>% 
   spread(var, val)
 
+# cram, pull out data from original file, import new, combine
+crmold <- orig %>% 
+  dplyr::select(MasterID, yr, indexscore_cram) %>% 
+  na.omit
+crmdat <- read_excel('raw/Copy of CRAM_SMC_20190122_for SWAMP_ACR_rdm.xlsx', sheet = 'Index and Attribute Scores') %>% 
+  dplyr::select(StationCode, visitdate, indexscore) %>% 
+  rename(
+    MasterID = StationCode, 
+    date = visitdate,
+    indexscore_cram = indexscore
+  ) %>% 
+  mutate(
+    yr = as.Date(date),
+    yr = year(yr)
+  ) %>% 
+  bind_rows(crmold) %>% 
+  group_by(MasterID, yr) %>% 
+  summarize(indexscore_cram = mean(indexscore_cram, na.rm = T)) %>% 
+  unique
+
 # combine all
-alldat <- full_join(orig, asci, by = c('MasterID', 'date')) %>%
-  full_join(ipiscr, by = c('MasterID', 'date')) %>% 
+alldat <- orig %>%
+  select(-indexscore_cram) %>%  # combined with crmdat above
+  full_join(orig, asci, by = c('MasterID', 'yr')) %>%
+  full_join(ipiscr, by = c('MasterID', 'yr')) %>%
+  full_join(crmdat, by = c('MasterID', 'yr')) %>% 
   na.omit %>% 
   mutate(
     CSCI_class = cut(csci_mean, breaks = c(-Inf, 0.325, 0.625, 0.825, 1.025, Inf), labels = c(6, 5, 4, 3, 2)), 
@@ -89,10 +116,10 @@ valdat <- alldat %>%
   filter(SiteSet %in% 'Val')
 
 # models, gam
-wqgam <- gam(bio_fp ~ s(log(TN2), bs = 'tp') + s(log10(TP), bs = 'tp') + s(Cond, bs = 'tp'),
+wqgam <- gam(bio_fp ~ s(log10(1+TN2), bs = 'tp') + s(log10(1 + TP), bs = 'tp') + s(Cond, bs = 'tp'),
              family = binomial('logit'), data = caldat)
 
-habgam <- gam(bio_fp ~ s(indexscore_cram, bs = 'tp') + s(IPI, bs = 'tp') + ti(indexscore_cram, IPI, bs = c('tp', 'tp')),
+habgam <- gam(bio_fp ~ s(indexscore_cram, bs = 'tp') + s(IPI, bs = 'tp'),
               family = binomial('logit'), data = caldat)
 
 # save models
