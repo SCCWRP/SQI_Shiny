@@ -1,88 +1,215 @@
-# create models of probability of stressed biological condition
-# saved in sqi package repo
 library(tidyverse)
-library(mgcv)
-library(randomForest)
-library(lubridate)
 library(readxl)
+library(lubridate)
+library(randomForest)
 
-# lookup table of bio BCG class, corresponding score, and combined categorical score
-xwalk <- read.csv('raw/scoring_xwalk.csv', stringsAsFactors = F)
+# import ------------------------------------------------------------------
 
-##
-# all chem, bio, hab
+fls <- list.files('raw/rawdig/',
+                  recursive = T, full.names = T)
 
-# original file from rafi
-orig <- read.csv('raw/CombinedData_112417.csv', stringsAsFactors = F) %>% 
-  select(MasterID, SampleDate2, Latitude, Longitude, indexscore_cram, csci_mean, Cond, TN2, TP) %>% 
+dat <- fls %>% 
+  enframe %>% 
+  group_by(value) %>% 
   mutate(
-    date = mdy(SampleDate2),
-    yr = year(date)
+    rawdat = purrr::map(value, function(x){
+      
+      # import, wrangle data
+      raw <- read_excel(x)
+      
+      return(raw)
+      
+    })
   ) %>% 
-  dplyr::select(-SampleDate2, -date)
+  select(-name) %>% 
+  ungroup %>% 
+  mutate(value = basename(value))
 
-# getting asci
-asci <- read.csv('raw/asci.scores.csv', stringsAsFactors = FALSE) %>% 
-  dplyr::select(X, MMI.hybrid) %>% 
+# masterid ----------------------------------------------------------------
+
+mastid <- dat %>% 
+  filter(grepl('^luStation', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  select(StationID, MasterID) %>% 
+  rename(StationCode = StationID)
+
+# ASCI --------------------------------------------------------------------
+
+ascidat <- dat %>% 
+  filter(grepl('^asci', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  filter(ind %in% 'MMI') %>% 
+  filter(tax %in% 'Hybrid') %>% 
   rename(
-    sampleid = X,
-    asci_mean = MMI.hybrid
+    asci_mean = scr
   ) %>% 
+  select(sampleid, asci_mean) %>% 
   mutate(
-    MasterID = gsub('^(.*)_.*_.*$', '\\1', sampleid),
+    StationCode = gsub('^(.*)_.*_.*$', '\\1', sampleid),
     date = gsub('^.*_(.*)_.*$', '\\1', sampleid), 
     smps = gsub('^.*_.*_(.*)$', '\\1', sampleid),
     date = mdy(date),
-    yr = year(date)
+    yr = year(date),
+    asci_mean = as.numeric(asci_mean)
   ) %>% 
-  group_by(MasterID, yr) %>% 
-  summarize(asci_mean = mean(asci_mean, na.rm = T))
+  group_by(StationCode, yr) %>% 
+  summarize(asci_mean = mean(asci_mean, na.rm = T)) %>% 
+  gather('var', 'val', -StationCode, -yr)
 
-# getting ipi scores, phab scores
-ipiscr <- read.csv('raw/ipiscr.csv', stringsAsFactors = F) %>% 
+
+# CSCI --------------------------------------------------------------------
+
+cscidat <- dat %>% 
+  filter(grepl('^CSCI', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  select(StationCode, SampleYear, CSCI) %>% 
+  rename(yr = SampleYear) %>% 
+  group_by(StationCode, yr) %>% 
+  summarize(csci_mean = mean(CSCI, na.rm = T)) %>% 
+  gather('var', 'val', -StationCode, -yr)
+
+
+# CRAM --------------------------------------------------------------------
+
+cramdat <- dat %>% 
+  filter(grepl('^CRAM', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  select(StationCode, visitdate, indexscore, bs, blc, hy, ps) %>% 
+  mutate(yr = year(visitdate)) %>% 
+  group_by(StationCode, yr) %>% 
+  summarize(
+    indexscore_cram = mean(indexscore, na.rm = T),
+    bs = mean(bs, na.rm = T),
+    blc = mean(blc, na.rm = T),
+    hy = mean(hy, na.rm = T),
+    ps = mean(ps, na.rm = T)
+  ) %>% 
+  gather('var', 'val', -StationCode, -yr)
+
+
+# IPI ---------------------------------------------------------------------
+
+# new ipi data
+ipifeb <- dat %>% 
+  filter(grepl('^IPI\\s', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
   dplyr::select(StationCode, SampleDate, IPI, Ev_FlowHab_score, H_AqHab_score, H_SubNat_score, PCT_SAFN_score, XCMG_score) %>% 
-  rename(
-    MasterID = StationCode,
-    date = SampleDate
-  ) %>% 
   mutate(
-    yr = mdy(date), 
-    yr = year(yr)
+    yr = year(SampleDate)
   ) %>% 
-  dplyr::select(-date) %>% 
-  gather('var', 'val', -MasterID, -yr) %>% 
+  dplyr::select(-SampleDate) %>% 
+  gather('var', 'val', -StationCode, -yr) %>% 
   mutate(
     var = gsub('\\_score$', '', var)
   ) %>% 
-  spread(var, val)
+  spread(var, val) %>% 
+  gather('var', 'val', -StationCode, -yr)
 
-# cram, pull out data from original file, import new, combine
-crmold <- orig %>% 
-  dplyr::select(MasterID, yr, indexscore_cram) %>% 
-  na.omit
-crmdat <- read_excel('raw/Copy of CRAM_SMC_20190122_for SWAMP_ACR_rdm.xlsx', sheet = 'Index and Attribute Scores') %>% 
-  dplyr::select(StationCode, visitdate, indexscore) %>% 
-  rename(
-    MasterID = StationCode, 
-    date = visitdate,
-    indexscore_cram = indexscore
-  ) %>% 
+# old ipi data
+ipidec <- dat %>% 
+  filter(grepl('^ipiscr', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  dplyr::select(StationCode, SampleDate, IPI, Ev_FlowHab_score, H_AqHab_score, H_SubNat_score, PCT_SAFN_score, XCMG_score) %>% 
   mutate(
-    yr = as.Date(date),
-    yr = year(yr)
+    yr = year(SampleDate)
   ) %>% 
-  bind_rows(crmold) %>% 
-  group_by(MasterID, yr) %>% 
-  summarize(indexscore_cram = mean(indexscore_cram, na.rm = T)) %>% 
-  unique
+  dplyr::select(-SampleDate) %>% 
+  gather('var', 'val', -StationCode, -yr) %>% 
+  mutate(
+    var = gsub('\\_score$', '', var)
+  ) 
+
+# all ipi
+ipidat <- rbind(ipifeb, ipidec) %>% 
+  group_by(StationCode, yr, var) %>% 
+  summarise(val = mean(val, na.rm = T))
+
+# nutrients ---------------------------------------------------------------
+
+cond <- dat %>% 
+  filter(grepl('^SpecCond', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  select(StationCode, SampleDate, Result) %>% 
+  mutate(
+    yr = year(SampleDate), 
+    Result = as.numeric(Result)
+  ) %>% 
+  group_by(StationCode, yr) %>% 
+  summarise(Cond = mean(Result, na.rm = T)) %>% 
+  gather('var', 'val', -StationCode, -yr) %>% 
+  na.omit
+
+tntpsmc <- dat %>% 
+  filter(grepl('^nutrient', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  select(stationcode, sampledate, total_n_mgl, total_p_mgl) %>% 
+  mutate(
+    yr = year(sampledate)
+  ) %>% 
+  rename(
+    StationCode = stationcode
+  ) %>% 
+  group_by(StationCode, yr) %>% 
+  summarize(
+    TN = mean(total_n_mgl, na.rm = T),
+    TP = mean(total_p_mgl, na.rm = T)
+  ) %>% 
+  gather('var', 'val', -StationCode, -yr) %>% 
+  na.omit
+
+tntpabc <- dat %>% 
+  filter(grepl('^Compiled', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  select(StationCode, SampleDate, AnalyteName, Result) %>% 
+  filter(AnalyteName %in% c('SpecificConductivity', 'Phosphorus as P', 'Total_N_calculated', 'Total_n_calculated', 'Total_P_reported', 'Total_N_partial', 'Total_N_Partial', 'Total_P_Partial')) %>% 
+  mutate(
+    AnalyteName = case_when(
+      AnalyteName %in% 'SpecificConductivity' ~ 'Cond', 
+      AnalyteName %in% c('Phosphorus as P', 'Total_P_reported', 'Total_P_partial') ~ 'TP', 
+      AnalyteName %in% c('Total_N_calculated', 'Total_n_calculated', 'Total_N_partial', 'Total_N_Partial') ~ 'TN'
+    ), 
+    SampleDate = case_when( # ignore warnings here
+      is.na(as.numeric(SampleDate)) ~ dmy(SampleDate), 
+      !is.na(as.numeric(SampleDate)) ~ as.Date(as.numeric(SampleDate), origin = '1899-12-30')
+    ), 
+    yr = year(SampleDate)
+  ) %>% 
+  group_by(StationCode, yr, AnalyteName) %>% 
+  summarise(Result = mean(Result, na.rm = T)) %>% 
+  spread(AnalyteName, Result) %>% 
+  gather('var', 'val', -StationCode, -yr) %>% 
+  na.omit
+
+# all nutrients
+nutdat <- rbind(cond, tntpsmc, tntpabc) %>% 
+  group_by(StationCode, yr, var) %>% 
+  summarise(val = mean(val, na.rm = T))
+
+# combine all -------------------------------------------------------------
+
+alldat <- bind_rows(cscidat, ascidat, cramdat, ipidat, nutdat) %>%
+  ungroup %>%
+  left_join(mastid, by  = 'StationCode') %>%
+  select(-StationCode) %>%
+  na.omit %>% 
+  group_by(MasterID, yr, var) %>%
+  summarize(val = mean(val, na.rm = T)) %>%
+  spread(var, val) %>% 
+  na.omit
+
+dim(alldat)
 
 # combine all
-alldat <- orig %>%
-  select(-indexscore_cram) %>%  # combined with crmdat above
-  full_join(orig, asci, by = c('MasterID', 'yr')) %>%
-  full_join(ipiscr, by = c('MasterID', 'yr')) %>%
-  full_join(crmdat, by = c('MasterID', 'yr')) %>% 
-  na.omit %>% 
+alldatprp <- alldat %>%  
   mutate(
     CSCI_class = cut(csci_mean, breaks = c(-Inf, 0.325, 0.625, 0.825, 1.025, Inf), labels = c(6, 5, 4, 3, 2)), 
     CSCI_class = as.numeric(as.character(CSCI_class)),
@@ -115,16 +242,16 @@ caldat <- alldat %>%
 valdat <- alldat %>% 
   filter(SiteSet %in% 'Val')
 
-# models, gam
-wqgam <- gam(bio_fp ~ s(log10(1+TN2), bs = 'tp') + s(log10(1 + TP), bs = 'tp') + s(Cond, bs = 'tp'),
+# models, glm
+wqglm <- glm(Bio_pf ~ log10(1 + TN2) + log10(1 + TP) + Cond,
              family = binomial('logit'), data = caldat)
 
-habgam <- gam(bio_fp ~ s(indexscore_cram, bs = 'tp') + s(IPI, bs = 'tp'),
-              family = binomial('logit'), data = caldat)
+habglm <- glm(Bio_pf ~ indexscore_cram + PCT_SAFN + H_AqHab + H_SubNat + Ev_FlowHab + XCMG,
+               family = binomial('logit'), data = caldat)
 
-# save models
-save(wqgam, file = '../SQI/data/wqgam.RData', compress = 'xz')
-save(habgam, file = '../SQI/data/habgam.RData', compress = 'xz')
+# save
+save(wqglm, file = '../SQI_doc/data/wqglm.RData', compress = 'xz')
+save(habglm, file = '../SQI_doc/data/habglm.RData', compress = 'xz')
 
 # sample data for package
 sampdat <- alldat %>% 
