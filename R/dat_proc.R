@@ -11,13 +11,10 @@ data(sqidat)
 
 # county and smc shed data data, intersected with sample data above
 
-data(alldatavg)
-data(alldat)
-
 # county
 cntys <- st_read('S:/Spatial_Data/CA_Counties/cnty24k97.shp') %>% 
   st_transform(crs = prj) %>% 
-  .[alldatavg, ] %>% 
+  .[sqidat, ] %>% 
   select(NAME) %>% 
   rename(cnty = NAME) %>% 
   mutate_if(is.factor, as.character)
@@ -41,7 +38,6 @@ rwqbs <- st_read('S:/Spatial_Data/RWQCBdistricts/rwqcbnda.shp') %>%
 
 # get intersection with sample data
 sqidat <- sqidat %>% 
-  st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj) %>% 
   st_intersection(cntys) %>% 
   st_intersection(sheds) %>% 
   st_intersection(rwqbs)
