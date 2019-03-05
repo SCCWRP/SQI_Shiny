@@ -31,13 +31,19 @@ mastid <- dat %>%
   filter(grepl('^luStation', value)) %>% 
   pull(rawdat) %>% 
   .[[1]] %>% 
-  select(StationID, MasterID) %>% 
-  rename(StationCode = StationID)
+  select(StationID, MasterID, Latitude, Longitude) %>% 
+  rename(StationCode = StationID) %>% 
+  group_by(StationCode, MasterID) %>% 
+  summarize(
+    Latitude = mean(Latitude, na.rm = T), 
+    Longitude = mean(Longitude, na.rm = T)
+  )
 
 # ASCI --------------------------------------------------------------------
 
+# original 
 ascidat <- dat %>% 
-  filter(grepl('^asci', value)) %>% 
+  filter(grepl('^asci\\_scrs', value)) %>% 
   pull(rawdat) %>% 
   .[[1]] %>% 
   filter(ind %in% 'MMI') %>% 
@@ -55,9 +61,58 @@ ascidat <- dat %>%
     asci_mean = as.numeric(asci_mean)
   ) %>% 
   group_by(StationCode, yr) %>% 
-  summarize(asci_mean = mean(asci_mean, na.rm = T)) %>% 
-  gather('var', 'val', -StationCode, -yr)
+  summarize(asci_mean = mean(asci_mean, na.rm = T)) 
 
+# smc
+ascismcdat <- dat %>% 
+  filter(grepl('^ASCI\\_SMC', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  dplyr::select(X__1, hybrid_MMI) %>% 
+  rename(
+    sampleid = X__1,
+    asci_mean = hybrid_MMI
+  ) %>% 
+  mutate(
+    StationCode = gsub('^(.*)_.*_.*$', '\\1', sampleid),
+    date = gsub('^.*_(.*)_.*$', '\\1', sampleid), 
+    smps = gsub('^.*_.*_(.*)$', '\\1', sampleid),
+    date = mdy(date),
+    yr = year(date),
+    asci_mean = as.numeric(asci_mean)
+  ) %>% 
+  group_by(StationCode, yr) %>% 
+  summarize(asci_mean = mean(asci_mean, na.rm = T)) 
+
+# swamp
+asciswampdat <- dat %>% 
+  filter(grepl('^ASCI\\_SWAMP', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  dplyr::select(X__1, hybrid_MMI) %>% 
+  rename(
+    sampleid = X__1,
+    asci_mean = hybrid_MMI
+  ) %>% 
+  mutate(
+    StationCode = gsub('^(.*)_.*_.*$', '\\1', sampleid),
+    date = gsub('^.*_(.*)_.*$', '\\1', sampleid), 
+    smps = gsub('^.*_.*_(.*)$', '\\1', sampleid),
+    date = mdy(date),
+    yr = year(date),
+    asci_mean = as.numeric(asci_mean)
+  ) %>% 
+  group_by(StationCode, yr) %>% 
+  summarize(asci_mean = mean(asci_mean, na.rm = T)) 
+
+# combine all asci
+ascidat <- ascidat %>% 
+  bind_rows(ascismcdat) %>% 
+  bind_rows(asciswampdat) %>% 
+  group_by(StationCode, yr) %>% 
+  summarize(asci_mean = mean(asci_mean, na.rm = T)) %>% 
+  ungroup %>% 
+  gather('var', 'val', -StationCode, -yr)
 
 # CSCI --------------------------------------------------------------------
 
@@ -74,6 +129,7 @@ cscidat <- dat %>%
 
 # CRAM --------------------------------------------------------------------
 
+# orig cram data
 cramdat <- dat %>% 
   filter(grepl('^CRAM', value)) %>% 
   pull(rawdat) %>% 
@@ -87,9 +143,38 @@ cramdat <- dat %>%
     blc = mean(blc, na.rm = T),
     hy = mean(hy, na.rm = T),
     ps = mean(ps, na.rm = T)
-  ) %>% 
-  gather('var', 'val', -StationCode, -yr)
+  )
 
+# ecram
+cramdate <- dat %>% 
+  filter(grepl('^Missing\\sCRAM', value)) %>% 
+  pull(rawdat) %>% 
+  .[[1]] %>% 
+  dplyr::select(MasterID, Year, indexscore, buffer_landscape_cont, hydrology, physical_structure, biotic_structure) %>% 
+  rename(
+    yr = Year, 
+    indexscore_cram = indexscore, 
+    bs = biotic_structure,
+    blc = buffer_landscape_cont,
+    hy = hydrology, 
+    ps = physical_structure
+  ) %>% 
+  left_join(mastid, by = 'MasterID') %>% # this is usually done when combining all, but need to get stationcode here to combine with cram above
+  select(StationCode, yr, indexscore_cram, bs, blc, hy, ps) 
+
+# combine original with ecram
+cramdat <- cramdat %>% 
+  bind_rows(cramdate) %>% 
+  group_by(StationCode, yr) %>% 
+  summarize(
+    indexscore_cram = mean(indexscore_cram, na.rm = T),
+    bs = mean(bs, na.rm = T),
+    blc = mean(blc, na.rm = T),
+    hy = mean(hy, na.rm = T),
+    ps = mean(ps, na.rm = T)
+  ) %>% 
+  ungroup %>% 
+  gather('var', 'val', -StationCode, -yr)
 
 # IPI ---------------------------------------------------------------------
 
@@ -128,7 +213,14 @@ ipidec <- dat %>%
 # all ipi
 ipidat <- rbind(ipifeb, ipidec) %>% 
   group_by(StationCode, yr, var) %>% 
-  summarise(val = mean(val, na.rm = T))
+  summarise(val = mean(val, na.rm = T)) %>% 
+  ungroup %>% 
+  mutate(
+    yr = case_when(
+      StationCode %in% c('412M08599', '405PS0030') ~ 2015, # these stations had year incorrectly labelled as 2020
+      T ~ yr
+    )
+  )
 
 # nutrients ---------------------------------------------------------------
 
@@ -196,15 +288,28 @@ nutdat <- rbind(cond, tntpsmc, tntpabc) %>%
 
 # combine all -------------------------------------------------------------
 
-alldat <- bind_rows(cscidat, ascidat, cramdat, ipidat, nutdat) %>%
+alldat <- bind_rows(ascidat, ipidat, nutdat, cramdat) %>%
   ungroup %>%
   left_join(mastid, by  = 'StationCode') %>%
-  select(-StationCode) %>%
+  select(-StationCode, -Latitude, -Longitude) %>%
   na.omit %>% 
   group_by(MasterID, yr, var) %>%
-  summarize(val = mean(val, na.rm = T)) %>%
+  summarize(
+    val = mean(val, na.rm = T)
+  ) %>%
   spread(var, val) %>% 
   na.omit
+
+latlon <- mastid %>% 
+  filter(MasterID %in% alldat$MasterID) %>% 
+  group_by(MasterID) %>% 
+  summarise(
+    Latitude = mean(Latitude, na.rm = T), 
+    Longitude = mean(Longitude, na.rm = T)
+  )
+
+alldat <- alldat %>% 
+  left_join(latlon, by = 'MasterID')
 
 dim(alldat)
 
