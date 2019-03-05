@@ -5,41 +5,10 @@ library(SQI)
 
 prj <- 4326 # geographic wgs84
 
-######
-# get all existing data 
-# obs for repeat visits are averaged for each site
+data(sqidat)
 
-# input data and sqi scores as sf object
-alldatavg <- read.csv('//172.16.1.5/Biology/SMC SQI_RM/Data/RawData/SMC_WQIapp_051618/WQI_App/alldata.csv', stringsAsFactors = F) %>% 
-  mutate(date = as.Date(SampleDate2, format = '%m/%d/%Y')) %>% 
-  select(MasterID, date, Latitude, Longitude, csci_mean, h20_mean, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG, indexscore_cram, Cond, TN2, TP) %>% 
-  rename(
-    CSCI = csci_mean,
-    ASCI = h20_mean
-  ) %>% 
-  gather('var', 'val', -MasterID, -date) %>%
-  group_by(MasterID, var) %>% 
-  summarise(val = mean(val, na.rm = T)) %>% 
-  spread(var, val) %>% 
-  sqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
-  st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj)
+# spatial data ------------------------------------------------------------
 
-######
-# get all existing data 
-# same as above but repeats not averaged
-
-# input data and sqi scores as sf object
-alldat <- read.csv('//172.16.1.5/Biology/SMC SQI_RM/Data/RawData/SMC_WQIapp_051618/WQI_App/alldata.csv', stringsAsFactors = F) %>% 
-  mutate(date = as.Date(SampleDate2, format = '%m/%d/%Y')) %>% 
-  select(MasterID, date, Latitude, Longitude, csci_mean, h20_mean, PCT_SAFN, H_AqHab, H_SubNat, Ev_FlowHab, XCMG, indexscore_cram, Cond, TN2, TP) %>% 
-  rename(
-    CSCI = csci_mean,
-    ASCI = h20_mean
-  ) %>% 
-  sqi(wq_mod_in = wqgam, hab_mod_in = habgam) %>%
-  st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj)
-
-######
 # county and smc shed data data, intersected with sample data above
 
 data(alldatavg)
@@ -71,11 +40,8 @@ rwqbs <- st_read('S:/Spatial_Data/RWQCBdistricts/rwqcbnda.shp') %>%
   mutate_if(is.factor, as.character)
 
 # get intersection with sample data
-alldat <- alldat %>% 
-  st_intersection(cntys) %>% 
-  st_intersection(sheds) %>% 
-  st_intersection(rwqbs)
-alldatavg <- alldatavg %>% 
+sqidat <- sqidat %>% 
+  st_as_sf(coords = c('Longitude', 'Latitude'), crs = prj) %>% 
   st_intersection(cntys) %>% 
   st_intersection(sheds) %>% 
   st_intersection(rwqbs)
@@ -83,5 +49,4 @@ alldatavg <- alldatavg %>%
 save(cntys, file = 'data/cntys.RData', compress = 'xz')
 save(sheds, file = 'data/sheds.RData', compress = 'xz')
 save(rwqbs, file = 'data/rwqbs.RData', compress = 'xz')
-save(alldat, file = 'data/alldat.RData', compress = 'xz')
-save(alldatavg, file = 'data/alldatavg.RData', compress = 'xz')
+save(sqidat, file = 'data/sqidat.RData', compress = 'xz')

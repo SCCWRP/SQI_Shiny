@@ -23,7 +23,7 @@ library(shinyWidgets)
 
 # source functions and data
 source("R/funcs.R")
-data(alldatavg)
+data(sqidat)
 data(sheds)
 data(cntys)
 data(rwqbs)
