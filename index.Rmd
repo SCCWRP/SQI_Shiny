@@ -737,7 +737,9 @@ column(12,
 
 ### Additional habitat components
 
-#### Index of Physical Habitat PHAB metrics
+#### CRAM components
+
+#### Index of Physical Habitat, PHAB metrics
 
 ```{r}
  column(width = 12,
