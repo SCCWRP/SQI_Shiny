@@ -702,10 +702,12 @@ shinydashboard::box(gaugeOutput('pchemhab'), title = HTML('<h4><i>Pr. of overall
 Details
 ===================================== 
 
-Column 
+Column {.tabset}
 -----------------------------------------------------------------------
 
-### Biology
+### Core 
+
+#### Biology
 
 ```{r}
  column(width = 12,
@@ -714,7 +716,7 @@ Column
  )
 ```
 
-### Chemistry
+#### Chemistry
 
 ```{r}
 column(12, 
@@ -724,7 +726,7 @@ column(12,
 )
 ```
 
-### Habitat
+#### Habitat
 
 ```{r}
  column(width = 12,
@@ -733,17 +735,19 @@ column(12,
  )
 ```
 
-<!-- ### Habitat components -->
+### Additional habitat components
 
-<!-- ```{r} -->
-<!--  column(width = 12, -->
-<!--                   shinydashboard::box(gaugeOutput('safn', height = '500px'), title = HTML('<h4><i>% sands and fines:</i></h4>'), width = 2), -->
-<!--                   shinydashboard::box(gaugeOutput('aqhab', height = '500px'), title = HTML('<h4><i>Diversity of habitat:</i></h4>'), width = 2), -->
-<!--                   shinydashboard::box(gaugeOutput('subnat', height = '500px'), title = HTML('<h4><i>Diversity of substrate:</i></h4>'), width = 2), -->
-<!--                   shinydashboard::box(gaugeOutput('flowhab', height = '500px'), title = HTML('<h4><i>Evenness of flow habitat:</i></h4>'), width = 2), -->
-<!--                   shinydashboard::box(gaugeOutput('veg', height = '500px'), title = HTML('<h4><i>Riparian veg. cover:</i></h4>'), width = 2) -->
-<!--  ) -->
-<!-- ``` -->
+#### Index of Physical Habitat PHAB metrics
+
+```{r}
+ column(width = 12,
+                  shinydashboard::box(gaugeOutput('safn', height = '500px'), title = HTML('<h4><i>% sands and fines:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('aqhab', height = '500px'), title = HTML('<h4><i>Diversity of habitat:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('subnat', height = '500px'), title = HTML('<h4><i>Diversity of substrate:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('flowhab', height = '500px'), title = HTML('<h4><i>Evenness of flow habitat:</i></h4>'), width = 2),
+                  shinydashboard::box(gaugeOutput('veg', height = '500px'), title = HTML('<h4><i>Riparian veg. cover:</i></h4>'), width = 2)
+ )
+```
 
 
 Relative details
