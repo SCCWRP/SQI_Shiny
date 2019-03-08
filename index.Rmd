@@ -20,6 +20,7 @@ library(mapview)
 library(leaflet)
 library(sf)
 library(shinyWidgets)
+# library(ShinyDash)
 
 # source functions and data
 source("R/funcs.R")
@@ -29,8 +30,8 @@ data(cntys)
 data(rwqbs)
 
 # numeric variable names
-numnms <- c('CSCI', 'ASCI', 'TN', 'TP', 'Cond', 'indexscore_cram', 'IPI', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
-numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', 'Index of Physical Integrity', '% sands and fines', 'Diversity of habitat', 'Diversity of substrate', 'Evenness of flow habitat', 'Riparian veg. cover')
+numnms <- c('CSCI', 'ASCI', 'TN', 'TP', 'Cond', 'indexscore_cram', 'IPI', 'blc', 'bs', 'hy', 'ps', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
+numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', 'Index of physical integrity', 'Buffer and landscape', 'Biotic structure', 'Hydrologic condition', 'Physical structure', '% sands and fines', 'Diversity of habitat', 'Diversity of substrate', 'Evenness of flow habitat', 'Riparian veg. cover')
 names(numnms) <- numlab
 
 # color lims
@@ -40,15 +41,19 @@ tnlim <- c(2, 1, 0.5, 0)
 tplim <- c(0.2, 0.1, 0.05, 0)
 condlim <- c(2000, 1200, 600, 0)
 cramlim <- c(0, 63, 72, 84)
-ipilim <- c(0, 0.65, 0.8, 1)
-safnlim <- c(100, 66, 33, 0)
-aqhablim <- c(0, 0.4, 0.87, 1.74)
-subnatlim <- c(0, 0.4, 0.87, 1.74)
-flowhablim <- c(0, 0.16, 0.32, 0.64)
-veglim <- c(0, 16, 32, 64)
+ipilim <- c(0, 0.71, 0.84, 1)
+blclim <- c(0, 72, 82, 95)
+bslim <- c(0, 38, 54, 75)
+hylim <- c(0, 51, 64, 81)
+pslim <- c(0, 44, 60, 81)
+safnlim <- rev(c(0.66, 0.32, 0.16, 0))
+aqhablim <- c(0, 0.16, 0.32, 0.66)
+subnatlim <- c(0, 0.16, 0.32, 0.66)
+flowhablim <- c(0, 0.16, 0.32, 0.66)
+veglim <- c(0, 0.16, 0.32, 0.66)
 
 # for boxplot color limits
-collims <- list(cscilim, ascilim, tnlim, tplim, condlim, cramlim, ipilim, safnlim, aqhablim, subnatlim, flowhablim, veglim)
+collims <- list(cscilim, ascilim, tnlim, tplim, condlim, cramlim, ipilim, blclim, bslim, hylim, pslim, safnlim, aqhablim, subnatlim, flowhablim, veglim)
 names(collims) <- numlab
 collims <- enframe(collims, 'var', 'lims')
 
@@ -248,6 +253,46 @@ dsthab <- reactive({
   
 })
 
+# distribution boxplots, CRAM components
+dstcrm <- reactive({
+  
+  # only do it a site has been selected
+  req(nrow(catslng()) > 0)
+  
+  # input
+  dstdat <- dstdat()
+  catslng <- catslng()
+  
+  # filters
+  selvr <- numlab[c(8:11)]
+  
+  # get boxplots
+  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
+  
+  return(out)
+  
+})
+
+# distribution boxplots, ipi components
+dstipi <- reactive({
+  
+  # only do it a site has been selected
+  req(nrow(catslng()) > 0)
+  
+  # input
+  dstdat <- dstdat()
+  catslng <- catslng()
+  
+  # filters
+  selvr <- numlab[c(12:16)]
+  
+  # get boxplots
+  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
+  
+  return(out)
+  
+})
+
 ```
 
 ```{r outputobj}
@@ -378,7 +423,7 @@ output$pchemhab <- renderGauge({
   
     val <- round(100 * cats()$pChemHab, 1)
     gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(0, 33), warning = c(33, 66), danger = c(66, 100),
+     success = c(0, 49), warning = c(49, 98), danger = c(98, 100),
      colors = allcol[c(1, 5, 4)]
     ))
              
@@ -387,7 +432,7 @@ output$pchem <- renderGauge({
   
   val <- round(100 * cats()$pChem, 1)
   gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(0, 16), warning = c(16, 33), danger = c(33, 100),
+     success = c(0, 44), warning = c(44, 87), danger = c(87, 100),
      colors = allcol[c(1, 5, 4)]
   ))
   
@@ -395,7 +440,7 @@ output$pchem <- renderGauge({
 output$phab <- renderGauge({
   val <- round(100 * cats()$pHab, 1)
   gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(0, 16), warning = c(16, 33), danger = c(33, 100),
+     success = c(0, 36), warning = c(36, 72), danger = c(72, 100),
      colors = allcol[c(1, 5, 4)]
   )
   )
@@ -446,10 +491,34 @@ output$ipi <- renderGauge({
      danger = ipilim[c(1, 2)], warning = ipilim[c(2, 3)], success = ipilim[c(3, 4)])
   )
 })
+output$blc <- renderGauge({
+  val <- round(cats()$blc, 1)
+  gauge(val, min = blclim[1], max = blclim[4], gaugeSectors(
+     danger = blclim[c(1, 2)], warning = blclim[c(2, 3)], success = blclim[c(3, 4)])
+  )
+})
+output$bs <- renderGauge({
+  val <- round(cats()$bs, 1)
+  gauge(val, min = bslim[1], max = bslim[4], gaugeSectors(
+     danger = bslim[c(1, 2)], warning = bslim[c(2, 3)], success = bslim[c(3, 4)])
+  )
+})
+output$hy <- renderGauge({
+  val <- round(cats()$hy, 1)
+  gauge(val, min = hylim[1], max = hylim[4], gaugeSectors(
+     danger = hylim[c(1, 2)], warning = hylim[c(2, 3)], success = hylim[c(3, 4)])
+  )
+})
+output$ps <- renderGauge({
+  val <- round(cats()$ps, 1)
+  gauge(val, min = pslim[1], max = pslim[4], gaugeSectors(
+     danger = pslim[c(1, 2)], warning = pslim[c(2, 3)], success = pslim[c(3, 4)])
+  )
+})
 output$safn <- renderGauge({
   val <- round(cats()$PCT_SAFN, 1)
   gauge(val, min = safnlim[4], max = safnlim[1], gaugeSectors(
-     danger = safnlim[c(3, 4)], warning = safnlim[c(2, 3)], success = safnlim[c(1, 2)])
+     danger = safnlim[c(1, 2)], warning = safnlim[c(2, 3)], success = safnlim[c(3, 4)])
   )
 })
 output$aqhab <- renderGauge({
@@ -489,7 +558,7 @@ output$plodstbio <- renderPlot({
   # patchwork
   wrap_plots(dstplo$plos, nrow = 1)
   
-})
+}, height = 180)
 
 # distribution boxplots, chemistry
 output$plodstchm <- renderPlot({
@@ -500,7 +569,7 @@ output$plodstchm <- renderPlot({
   # patchwork
   wrap_plots(dstplo$plos, nrow = 1)
   
-})
+}, height = 180)
 
 # distribution boxplots, habitat
 output$plodsthab <- renderPlot({
@@ -511,7 +580,29 @@ output$plodsthab <- renderPlot({
   # patchwork
   wrap_plots(dstplo$plos, nrow = 1)
   
-})
+}, height = 180)
+
+# distribution boxplots, cram components
+output$plodstcrm <- renderPlot({
+  
+  # input
+  dstplo <- dstcrm()
+
+  # patchwork
+  wrap_plots(dstplo$plos, nrow = 1)
+  
+}, height = 180)
+
+# distribution boxplots,ipi components
+output$plodstipi <- renderPlot({
+  
+  # input
+  dstplo <- dstipi()
+
+  # patchwork
+  wrap_plots(dstplo$plos, nrow = 1)
+  
+}, height = 180)
 ```
 
 Sidebar {.sidebar data-width=700}
@@ -637,13 +728,21 @@ knitr::include_graphics("www/strpr_ex.PNG")
 
 #### Details
 
-The **Details** tab shows the observed biological, chemistry, and habitat data that were collected at the selected site.  This information was used to create the underlying model of the SQI.  These data include:
+The **Details** tab shows the observed biological, chemistry, and habitat data that were collected at the selected site.  This information was used to create the underlying model of the SQI.  
+
+These data include the core components that were explicitly modelled in the SQI:
 
 * Biology: CSCI, ASCI
 
 * Chemistry: total nitrogen (mg/L), total phosphorus (mg/L), conductivity (uS/cm)
 
-* Habitat: CRAM index score, Index of Physical Integrity (IPI), % sands and fines, diversity of habitat, diversity of substrate, evenness of flow habitat, riparian vegetation cover
+* Habitat: CRAM index score, Index of Physical Integrity (IPI)
+
+Additional habitat components as part of CRAM and IPI can also be viewed:
+
+* CRAM: buffer and landscape condition, biotic structure, physical structure, hydrologic structure
+
+* IPI PHAB metrics: % sands and fines, diversity of habitat, diversity of substrate, evenness of flow habitat, riparian vegetation cover
 
 In general, higher CSCI and ASCI scores indicate more intact biological communities.  Higher values for total nitrogen, total phosphorus, and conductivity are associated with higher likelihood of chemistry degradation.  Lower values for the habitat variables are associated with higher likelihood of habitat degradation, except % sands and fines where higher values are associated with higher likelihood.
 
@@ -705,14 +804,14 @@ Details
 Column {.tabset}
 -----------------------------------------------------------------------
 
-### Core 
+### Core components
 
 #### Biology
 
 ```{r}
  column(width = 12,
-                  shinydashboard::box(gaugeOutput('csci'), title = HTML('<h4><i>CSCI:</i></h4>'), width = 3),
-                  shinydashboard::box(gaugeOutput('asci'), title = HTML('<h4><i>ASCI:</i></h4>'), width = 3)
+                  shinydashboard::box(gaugeOutput('csci'), title = HTML('<h5><i>CSCI:</i></h5>'), width = 4),
+                  shinydashboard::box(gaugeOutput('asci'), title = HTML('<h5><i>ASCI:</i></h5>'), width = 4)
  )
 ```
 
@@ -720,9 +819,9 @@ Column {.tabset}
 
 ```{r}
 column(12, 
-  shinydashboard::box(gaugeOutput('tn'), title = HTML('<h4><i>Total nitrogen:</i></h4>'), width = 3),
-  shinydashboard::box(gaugeOutput('tp'), title = HTML('<h4><i>Total phosphorus:</i></h4>'), width = 3),
-  shinydashboard::box(gaugeOutput('cond'), title = HTML('<h4><i>Conductivity:</i></h4>'), width = 3)
+  shinydashboard::box(gaugeOutput('tn'), title = HTML('<h5><i>Total nitrogen:</i></h5>'), width = 4),
+  shinydashboard::box(gaugeOutput('tp'), title = HTML('<h5><i>Total phosphorus:</i></h5>'), width = 4),
+  shinydashboard::box(gaugeOutput('cond'), title = HTML('<h5><i>Conductivity:</i></h5>'), width = 4)
 )
 ```
 
@@ -730,8 +829,8 @@ column(12,
 
 ```{r}
  column(width = 12,
-                  shinydashboard::box(gaugeOutput('cram', height = '500px'), title = HTML('<h4><i>CRAM index score:</i></h4>'), width = 3),
-        shinydashboard::box(gaugeOutput('ipi', height = '500px'), title = HTML('<h4><i>Index of Physical Integrity:</i></h4>'), width = 3)
+                  shinydashboard::box(gaugeOutput('cram', height = '500px'), title = HTML('<h5><i>CRAM index score:</i></h5>'), width = 4),
+        shinydashboard::box(gaugeOutput('ipi', height = '500px'), title = HTML('<h5><i>Index of physical integrity:</i></h5>'), width = 4)
  )
 ```
 
@@ -739,39 +838,69 @@ column(12,
 
 #### CRAM components
 
-#### Index of Physical Habitat, PHAB metrics
-
 ```{r}
- column(width = 12,
-                  shinydashboard::box(gaugeOutput('safn', height = '500px'), title = HTML('<h4><i>% sands and fines:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('aqhab', height = '500px'), title = HTML('<h4><i>Diversity of habitat:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('subnat', height = '500px'), title = HTML('<h4><i>Diversity of substrate:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('flowhab', height = '500px'), title = HTML('<h4><i>Evenness of flow habitat:</i></h4>'), width = 2),
-                  shinydashboard::box(gaugeOutput('veg', height = '500px'), title = HTML('<h4><i>Riparian veg. cover:</i></h4>'), width = 2)
+renderText({paste0('Total score: ', round(cats()$indexscore_cram, 1))})
+column(width = 12,
+                  shinydashboard::box(gaugeOutput('blc', height = '500px'), title = HTML('<h5><i>Buffer and landscape:</i></h5>'), width = 3),
+                  shinydashboard::box(gaugeOutput('bs', height = '500px'), title = HTML('<h5><i>Biotic structure:</i></h5>'), width = 3),
+                  shinydashboard::box(gaugeOutput('ps', height = '500px'), title = HTML('<h5><i>Physical structure:</i></h5>'), width = 3),
+                  shinydashboard::box(gaugeOutput('hy', height = '500px'), title = HTML('<h5><i>Hydrologic structure:</i></h5>'), width = 3)
  )
 ```
 
+#### Index of physical habitat, PHAB metrics
+
+```{r}
+renderText({paste0('Total score: ', round(cats()$IPI, 1))})
+column(width = 12,
+                  shinydashboard::box(gaugeOutput('safn', height = '500px'), title = HTML('<h5><i>% sands and fines:</i></h5>'), width = 3),
+                  shinydashboard::box(gaugeOutput('aqhab', height = '500px'), title = HTML('<h5><i>Diversity of habitat:</i></h5>'), width = 3),
+                  shinydashboard::box(gaugeOutput('subnat', height = '500px'), title = HTML('<h5><i>Diversity of substrate:</i></h5>'), width = 3)
+)
+column(width = 12, 
+                  shinydashboard::box(gaugeOutput('flowhab', height = '500px'), title = HTML('<h5><i>Evenness of flow habitat:</i></h5>'), width = 3),
+                  shinydashboard::box(gaugeOutput('veg', height = '500px'), title = HTML('<h5><i>Riparian veg. cover:</i></h5>'), width = 3)
+)
+```
 
 Relative details
 ===================================== 
 
-Column 
+Column {.tabset}
 -----------------------------------------------------------------------
 
-### Biology
+### Core components
+
+#### Biology
 
 ```{r}
 plotOutput('plodstbio')
 ```
 
-### Chemistry
+#### Chemistry
 
 ```{r}
 plotOutput('plodstchm')
 ```
 
-### Habitat
+#### Habitat
 
 ```{r}
 plotOutput('plodsthab')
+```
+
+### Additional habitat components
+
+#### CRAM components
+
+```{r}
+renderText({paste0('Total score: ', round(cats()$indexscore_cram, 1))})
+plotOutput('plodstcrm')
+```
+
+#### Index of physical habitat, PHAB metrics
+
+```{r}
+renderText({paste0('Total score: ', round(cats()$IPI, 1))})
+plotOutput('plodstipi')
 ```

@@ -125,17 +125,31 @@ dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp, box = T){
           #     diff
           # }
           # bins <- bins/25
-        
+          
+          # get %tile
+          ptile <- ecdf(toplo$distval)(val) %>%
+            round(2) %>%
+            `*`(100)
+          suff <- case_when(ptile %in% c(11,12,13) ~ "th",
+                        ptile %% 10 == 1 ~ 'st',
+                        ptile %% 10 == 2 ~ 'nd',
+                        ptile %% 10 == 3 ~'rd',
+                        TRUE ~ "th")
+          ptile <- paste0(ptile, suff, ' %tile')
+          
           p <- ggplot(toplo, aes(x = distval)) + 
-            geom_histogram(aes(y=..density..), fill = 'black', alpha = 0.2) + 
-            geom_density(aes(y=..density..), fill = scales::alpha('#99ccff', 0.4)) +
+            # geom_histogram(aes(y=..density..), fill = 'black', alpha = 0.2) + 
+            # geom_density(aes(y=..density..), fill = scales::alpha('#99ccff', 0.4)) +
+            geom_density(aes(y=..scaled..), fill = scales::alpha('#99ccff', 0.4)) +
             geom_rug(alpha = 1/2) +
             geom_vline(aes(xintercept = val), colour = pal_exp(valcat), size = 3, alpha = 0.7) +
             geom_vline(aes(xintercept = val), colour = pal_exp(valcat), size = 1, alpha = 1) + 
             theme(
               axis.title.y = element_blank(),
-              panel.grid = element_blank()
-            )
+              panel.grid = element_blank(), 
+              plot.title = element_text(size = 12)
+            ) + 
+            ggtitle(ptile)
           
         }
         
