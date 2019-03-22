@@ -46,7 +46,7 @@ blclim <- c(0, 72, 82, 95)
 bslim <- c(0, 38, 54, 75)
 hylim <- c(0, 51, 64, 81)
 pslim <- c(0, 44, 60, 81)
-safnlim <- rev(c(0.66, 0.32, 0.16, 0))
+safnlim <- c(0, 0.16, 0.32, 0.66)
 aqhablim <- c(0, 0.16, 0.32, 0.66)
 subnatlim <- c(0, 0.16, 0.32, 0.66)
 flowhablim <- c(0, 0.16, 0.32, 0.66)
@@ -404,12 +404,6 @@ output$biolcon <- flexdashboard::renderValueBox({
   colin <- getdsccol(txtin)
   flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-leaf', color = colin)
   })
-output$strscon <- flexdashboard::renderValueBox({
-  req(nrow(cats()) > 0)
-  txtin <- cats()$OverallStressCondition
-  colin <- getdsccol(txtin)
-  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-flash', color = colin)
-  })
 output$strsdet <- flexdashboard::renderValueBox({
   req(nrow(cats()) > 0)
   txtin <- cats()$OverallStressCondition_detail
@@ -423,7 +417,7 @@ output$pchemhab <- renderGauge({
   
     val <- round(100 * cats()$pChemHab, 1)
     gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(0, 49), warning = c(49, 98), danger = c(98, 100),
+     success = c(0, 10), warning = c(10, 90), danger = c(90, 100),
      colors = allcol[c(1, 5, 4)]
     ))
              
@@ -432,7 +426,7 @@ output$pchem <- renderGauge({
   
   val <- round(100 * cats()$pChem, 1)
   gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(0, 44), warning = c(44, 87), danger = c(87, 100),
+     success = c(0, 10), warning = c(10, 90), danger = c(90, 100),
      colors = allcol[c(1, 5, 4)]
   ))
   
@@ -440,7 +434,7 @@ output$pchem <- renderGauge({
 output$phab <- renderGauge({
   val <- round(100 * cats()$pHab, 1)
   gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
-     success = c(0, 36), warning = c(36, 72), danger = c(72, 100),
+     success = c(0, 10), warning = c(10, 90), danger = c(90, 100),
      colors = allcol[c(1, 5, 4)]
   )
   )
@@ -517,7 +511,7 @@ output$ps <- renderGauge({
 })
 output$safn <- renderGauge({
   val <- round(cats()$PCT_SAFN, 1)
-  gauge(val, min = safnlim[4], max = safnlim[1], gaugeSectors(
+  gauge(val, min = safnlim[1], max = safnlim[4], gaugeSectors(
      danger = safnlim[c(1, 2)], warning = safnlim[c(2, 3)], success = safnlim[c(3, 4)])
   )
 })
@@ -643,8 +637,7 @@ column(width = 12,
       choices = list(
         'Overall' = 'StreamHealthIndex', 
         'Biological condition' = 'BiologicalCondition',
-        'Stress condition' = 'OverallStressCondition', 
-        'Stress condition detail' = 'OverallStressCondition_detail'
+        'Stress condition' = 'OverallStressCondition_detail'
       ), 
       selected = 'Overall'
     )
@@ -708,19 +701,13 @@ Biological and stressor components that are used to create the overall SQI score
 knitr::include_graphics("www/sqi_bio.PNG")
 ```
 
-The stress condition at a site is also assigned to one of three levels based on the overall likelihood of being stressed by chemical and/or habitat conditions.
-
-```{r, out.width = "60%", fig.align = 'center'}
-knitr::include_graphics("www/sqi_str.PNG")
-```
-
-Details about the stress condition can also be viewed.
+The stress condition for a site is assigned to one of five categores.
 
 ```{r, out.width = "80%", fig.align = 'center'}
 knitr::include_graphics("www/sqi_strdet.PNG")
 ```
 
-The stress categories above are based on a modelled probability of biology being impacted by different combinations of stressors.  This information can be viewed on the **Scores** tab as the probability of chemistry stress, habitat stress, and overall stress as the product of the two.  For example, this site has an overall "moderate" stress condition (based on probability of overall stress) and stress condition detail as "stressed by chemistry degradation".
+The stress condition at a site is based on a modelled probability of biology being impacted by different combinations of stressors.  This information can be viewed on the **Scores** tab as the probability of chemistry stress, habitat stress, and overall stress as the product of the two.  For example, this site has an overall "moderate" stress condition (based on probability of overall stress) and stress condition detail as "stressed by chemistry degradation".
 
 ```{r, out.width = "80%", fig.align = 'center'}
 knitr::include_graphics("www/strpr_ex.PNG")
@@ -775,12 +762,6 @@ flexdashboard::valueBoxOutput('biolcon')
 ```
 
 ### Stress condition
-
-```{r}
-flexdashboard::valueBoxOutput('strscon')
-```
-
-### Stress condition detail
 
 ```{r}
 flexdashboard::valueBoxOutput('strsdet')
