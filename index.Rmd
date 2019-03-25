@@ -743,6 +743,8 @@ The spatial filters on the top left determine how the relative values are calcul
 
 This work is licensed under the Creative Commons [CC0](https://tldrlegal.com/license/creative-commons-cc0-1.0-universal). These are preliminary results, and are subject to change. For questions, contact [Marcus Beck](mailto:marcusb@sccwrp.org) or [Ken Schiff](mailto:kens@sccwrp.org).  Please visit [here](https://github.com/SCCWRP/SQI_Shiny) to view the web page source content. 
 
+[![DOI](https://zenodo.org/badge/154088415.svg)](https://zenodo.org/badge/latestdoi/154088415)
+
 Scores
 =====================================
 
