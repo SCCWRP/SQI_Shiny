@@ -42,7 +42,19 @@ sqidat <- sqidat %>%
   st_intersection(sheds) %>% 
   st_intersection(rwqbs)
 
+# constraint classes
+load(file = '../../Channels in developed landscapes_RM/Marcus/landscape_mod/data/calicls.RData')
+
+cnstr <- calicls %>% 
+  dplyr::select(COMID, strcls) %>% 
+  .[sheds,]
+
+cnstrnogeo <- cnstr %>% st_set_geometry(NULL)
+sqidat <- sqidat %>% 
+  left_join(cnstrnogeo, by = 'COMID')
+
 save(cntys, file = 'data/cntys.RData', compress = 'xz')
 save(sheds, file = 'data/sheds.RData', compress = 'xz')
 save(rwqbs, file = 'data/rwqbs.RData', compress = 'xz')
+save(cnstr, file = 'data/cnstr.RData', compress = 'xz')
 save(sqidat, file = 'data/sqidat.RData', compress = 'xz')

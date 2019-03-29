@@ -28,6 +28,7 @@ data(sqidat)
 data(sheds)
 data(cntys)
 data(rwqbs)
+data(cnstr)
 
 # numeric variable names
 numnms <- c('CSCI', 'ASCI', 'TN', 'TP', 'Cond', 'indexscore_cram', 'IPI', 'blc', 'bs', 'hy', 'ps', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
@@ -102,6 +103,11 @@ spaflt <- reactive({
     out <- rwqbs %>% 
       rename(polylab = RBNAME)
   
+  if(flby == 'Constraint classes'){
+    out <- c('likely unconstrained', 'possibly unconstrained', 'possibly constrained', 'likely constrained')
+    return(out)
+    }
+  
   out <- out %>% 
     pull(polylab) %>% 
     sort %>% 
@@ -130,6 +136,12 @@ polys <- reactive({
     out <- rwqbs %>% 
       rename(pllb = RBNAME)
   
+  if(flby == 'Constraint classes'){ # use sheds as bas
+    out <- sheds %>% 
+      rename(pllb = SMC_Name)
+    return(out)
+  }
+
   # filter by selection
   out <- out %>% 
     filter(pllb %in% flts)
@@ -142,8 +154,16 @@ polys <- reactive({
 sitedat <- reactive({
   
   # input
+  flts <- input$flts
+  flby <- input$flby
   polys <- polys()
   
+  if(flby == 'Constraint classes'){
+    out <- sqidat %>% 
+      filter(strcls %in% flts)
+    return(out)
+    }
+    
   out <- sqidat[polys, ]
   
   return(out)
@@ -302,7 +322,7 @@ output$map <- renderLeaflet({
   tomap <- input$tomap
   polys <- polys()
   sitedat <- sitedat()
-  
+
   req(nrow(polys) > 0)
   
   # assign colors
@@ -608,7 +628,7 @@ column(width = 12,
   
   column(width = 6, 
          
-    selectInput('flby', 'Filter by:', choices = c('SMC watersheds', 'Counties', 'Regional boards'))
+    selectInput('flby', 'Filter by:', choices = c('SMC watersheds', 'Counties', 'Regional boards', 'Constraint classes'))
                 
   ), 
   
@@ -683,7 +703,7 @@ Water chemistry (TN, TP, conductivity) and physical habitat (CRAM, IPI, PHAB met
 
 #### SQI scores
 
-The SQI can describe stream quality relative to an overall score, the biological condition, the stress condition, and details about the stress condition.  This information for a selected site can be viewed on the **Scores** tab and for all sites on the map using the dropdown menu:
+The SQI can describe stream quality relative to an overall score, the biological condition, and the stress condition.  This information for a selected site can be viewed on the **Scores** tab and for all sites on the map using the dropdown menu:
 
 ```{r, out.width = '50%', fig.align = 'center'}
 knitr::include_graphics('www/map_options.png')
@@ -737,7 +757,7 @@ In general, higher CSCI and ASCI scores indicate more intact biological communit
 
 The **Relative details** tab repeats information on the **Details** tab for the selected site, with the addition of a relative context for the observed data.  The observed values are shown relative to the distribution of values across all sites on the map.  This information can be used to help characterize which components of the SQI are potentially driving the site scores.  
 
-The spatial filters on the top left determine how the relative values are calculated.  For example, selecting only one watershed will plot the observed values for the selected site against all other values for that watershed.  This information can help place the observed values for the selected site in a more spatially relevant context, as compared to looking at relative values for the entire region.  Sites can be filtered by SMC watersheds, counties, or Water Board regional boundaries.
+The spatial filters on the top left determine how the relative values are calculated.  For example, selecting only one watershed will plot the observed values for the selected site against all other values for that watershed.  This information can help place the observed values for the selected site in a more spatially relevant context, as compared to looking at relative values for the entire region.  Sites can be filtered by SMC watersheds, counties, Water Board regional boundaries, or stream constraint classes (see [SCAPE](https://sccwrp.shinyapps.io/SCAPE)).
 
 #### Attribution
 
