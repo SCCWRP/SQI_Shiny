@@ -691,6 +691,8 @@ Column {data-width=500}
 
 This interactive web page will allow you to explore SQI scores for stream sampling sites from the Stormwater Monitoring Coalition (SMC) Data Portal.  Start by selecting a site by clicking a location on the map to the left.  Scroll through the SQI **Scores**, score **Details**, and **Relative details** for the selected site using the menu selections on the top. 
 
+Please visit [here](https://sccwrp.shinyapps.io/SQI_Shiny/sqi_calc.Rmd) to calculate your own SQI scores.
+
 #### SQI structure
 
 The SQI combines biological, physical, and chemical data to provide an overall picture of stream quality.  
