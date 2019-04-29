@@ -107,6 +107,11 @@ spaflt <- reactive({
   if(flby == 'Constraint classes'){
     out <- c('likely unconstrained', 'possibly unconstrained', 'possibly constrained', 'likely constrained')
     return(out)
+  }
+  
+  if(flby == 'Years'){
+    out <- as.character(seq(2009, 2016))
+    return(out)
     }
   
   out <- out %>% 
@@ -137,7 +142,7 @@ polys <- reactive({
     out <- rwqbs %>% 
       rename(pllb = RBNAME)
   
-  if(flby == 'Constraint classes'){ # use sheds as bas
+  if(flby %in% c('Constraint classes', 'Years')){ # use sheds as bas
     out <- sheds %>% 
       rename(pllb = SMC_Name)
     return(out)
@@ -163,7 +168,13 @@ sitedat <- reactive({
     out <- sqidat %>% 
       filter(strcls %in% flts)
     return(out)
-    }
+  }
+  
+  if(flby == 'Years'){
+    out <- sqidat %>% 
+      filter(yr %in% as.numeric(flts))
+    return(out)
+  }
     
   out <- sqidat[polys, ]
   
@@ -629,7 +640,7 @@ column(width = 12,
   
   column(width = 6, 
          
-    selectInput('flby', 'Filter by:', choices = c('SMC watersheds', 'Counties', 'Regional boards', 'Constraint classes'))
+    selectInput('flby', 'Filter by:', choices = c('SMC watersheds', 'Counties', 'Regional boards', 'Constraint classes', 'Years'))
                 
   ), 
   
@@ -640,7 +651,7 @@ column(width = 12,
       # input
       spaflt <- spaflt()
 
-      pickerInput(inputId = "flts", label = 'Select spatial filters:', choices = spaflt,
+      pickerInput(inputId = "flts", label = 'Select site filters:', choices = spaflt,
         options = list(`actions-box` = TRUE, size = 20), selected = spaflt, multiple = TRUE)      
       
     })
