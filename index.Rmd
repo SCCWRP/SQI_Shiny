@@ -347,7 +347,7 @@ output$map <- renderLeaflet({
       radius=5, 
       weight = 1,
       fillOpacity = 1,
-      label = ~paste0(MasterID, ': ', toshw)
+      label = ~paste0(MasterID, ' (', yr, '): ', toshw)
     ) %>% 
     addLegend("bottomleft", colors = legcols$col, labels = legcols$nms, opacity = 1)
 
