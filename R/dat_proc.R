@@ -58,3 +58,13 @@ save(sheds, file = 'data/sheds.RData', compress = 'xz')
 save(rwqbs, file = 'data/rwqbs.RData', compress = 'xz')
 save(cnstr, file = 'data/cnstr.RData', compress = 'xz')
 save(sqidat, file = 'data/sqidat.RData', compress = 'xz')
+
+# stream polylines --------------------------------------------------------
+
+data(sheds)
+
+strms <- st_read('../../Channels in developed landscapes_RM/Data/strm_constraints/strm_constraints.shp') %>% 
+  .[sheds, ] %>% 
+  dplyr::select(COMID, Ref10)
+
+save(strms, file = 'data/strms.RData', compress = 'xz')
