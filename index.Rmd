@@ -23,6 +23,12 @@ library(sf)
 library(shinyWidgets)
 # library(ShinyDash)
 
+downloadButtonRmd <- function (outputId, label = "Download", class = NULL, ...)  {
+  tags$a(id = outputId, class = paste("btn btn-default shiny-download-link", 
+                                      class), href = "", target = "_blank", download = NA, 
+         icon("download"), label, ...)
+}
+
 # source functions and data
 source("R/funcs.R")
 data(sqidat)
@@ -345,7 +351,7 @@ output$map <- renderLeaflet({
   # legend stuff
   legcols <- getdsccol(palfac = tomap)
 
-  mapview(polys, fill = F, label = polys$pllb, homebutton = F, popup = NULL) %>% 
+  mapview(polys, fill = F, label = polys$pllb, homebutton = F, popup = NULL, legend = F) %>% 
     .@map %>% 
     removeMouseCoordinates() %>%
     addCircleMarkers(
@@ -629,7 +635,40 @@ output$plodstipi <- renderPlot({
   wrap_plots(dstplo$plos, nrow = 1)
   
 }, height = 180)
+
+##
+# data download
+
+# download handler for data selected by spatial filter
+output$dltab <- downloadHandler(
+  filename = function() {'sqidata.csv'},
+  content = function(file) {
+    
+    # reaname some columns, remove others, add lat/lon, remove geometry
+    todl <- sitedat() %>% 
+      rename(
+        SQI = StreamHealthIndex, 
+        biological_condition = BiologicalCondition,
+        stress_condition = OverallStressCondition_detail,
+        pOverall = pChemHab, 
+        County = cnty, 
+        SMC_region = SMC_Name,
+        Regional_board = RBNAME,
+        Constraint_class = strcls
+      ) %>% 
+      dplyr::select(-WaterChemistryCondition, -HabitatCondition, -OverallStressCondition) %>% 
+      mutate(
+        lon = st_coordinates(.)[, 1], 
+        lat = st_coordinates(.)[, 2]
+      ) %>% 
+      st_set_geometry(NULL)
+    
+    write.csv(todl, file, quote = T, row.names = F)
+    
+  }
+)
 ```
+
 
 Sidebar {.sidebar data-width=700}
 ===========================================================
@@ -704,6 +743,13 @@ Column {data-width=500}
 This interactive web page will allow you to explore SQI scores for stream sampling sites from the Stormwater Monitoring Coalition (SMC) Data Portal.  Start by selecting a site by clicking a location on the map to the left.  Scroll through the SQI **Scores**, score **Details**, and **Relative details** for the selected site using the menu selections on the top. 
 
 Please visit [here](https://sccwrp.shinyapps.io/SQI_Shiny/sqi_calc.Rmd) to calculate your own SQI scores.
+
+```{r}
+fluidRow(
+  column(12, 'Click here to download SQI data from the map:'),
+  column(2, downloadButtonRmd('dltab', ''))
+)
+```
 
 #### SQI structure
 
