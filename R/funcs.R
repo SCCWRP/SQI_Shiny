@@ -62,16 +62,47 @@ getdsccol <- function(dscin = NULL, palout = F, palfac = NULL){
   
 }
 
-# get relative distribution boxplots
+#' Get relative color value for vline in relative distribution plots to match gauges
+#'
+#' @param val 
+#' @param lims 
+#' @param var 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+relcol <- function(val, lims, var, gaugecols =c('#ff0000', '#f9c802', '#a9d70b')) {
+  
+  # color palette function
+  pal_exp <- colorFactor(
+    palette = c('#ff0000', '#f9c802', '#a9d70b'),
+    na.color = 'yellow',
+    levels = c('lo', 'md', 'hi'))
+  
+  # setup limits labels and breaks for increasing/decreasing
+  lbs <- c('lo', 'md', 'hi')
+  brks <- c(-Inf, lims[2], lims[3], Inf)
+  if(lims[1] > lims[2]){
+    lbs <- rev(lbs)
+    brks <- c(Inf, lims[2], lims[3], -Inf) 
+  }
+  valcat <- cut(val, breaks = brks, labels = lbs, right = F)
+  
+  out <- pal_exp(valcat)
+  
+  return(out)
+      
+}
+
+# get relative distribution plot
 #
 # catslng observed data for selected site, all variables
 # dstdat all observed data for sites in selected region
 # selvr chr str of selected variables to plot
 # collims limits defining categories for selected variables
-# pal_exp color palette function for categories
-# box logical indicating if boxplots or density histograms are produced
 #
-dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp, box = T){
+dst_fun <- function(catslng, dstdat, selvr, collims){
 
   # make plots
   out <- dstdat %>% 
@@ -93,65 +124,49 @@ dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp, box = T){
         # color limits
         toplo <- data 
         
-        # setup limits labels and breaks for increasing/decreasing
-        lbs <- c('lo', 'md', 'hi')
-        brks <- c(-Inf, lims[2], lims[3], Inf)
-        if(lims[1] > lims[2]){
-          lbs <- rev(lbs)
-          brks <- c(Inf, lims[2], lims[3], -Inf) 
-        }
-        valcat <- cut(val, breaks = brks, labels = lbs)
-
-        # boxplot
-        if(box){
-          
-          p <- ggplot(toplo, aes(x = factor(var), y = distval)) + 
-            geom_boxplot(fill = scales::alpha('#99ccff', 0.3)) + 
-            geom_hline(aes(yintercept = val), colour = pal_exp(valcat), size = 3, alpha = 0.7) +
-            geom_hline(aes(yintercept = val), colour = pal_exp(valcat), size = 1, alpha = 1) +
-            theme(axis.title.x = element_blank())
-          
-        } else {
-          
-          # # get bins, have to use this for scaling density
-          # if(var %in% c('Total nitrogen', 'Total phosphorus')){
-          #   bins <- log10(1 + toplo$distval) %>%
-          #     range %>%
-          #     diff
-          #   
-          # } else {
-          #   bins <- toplo$distval %>%
-          #     range %>%
-          #     diff
-          # }
-          # bins <- bins/25
-          
-          # get %tile
-          ptile <- ecdf(toplo$distval)(val) %>%
-            round(2) %>%
-            `*`(100)
-          suff <- case_when(ptile %in% c(11,12,13) ~ "th",
-                        ptile %% 10 == 1 ~ 'st',
-                        ptile %% 10 == 2 ~ 'nd',
-                        ptile %% 10 == 3 ~'rd',
-                        TRUE ~ "th")
-          ptile <- paste0(ptile, suff, ' %tile')
-          
-          p <- ggplot(toplo, aes(x = distval)) + 
-            # geom_histogram(aes(y=..density..), fill = 'black', alpha = 0.2) + 
-            # geom_density(aes(y=..density..), fill = scales::alpha('#99ccff', 0.4)) +
-            geom_density(aes(y=..scaled..), fill = scales::alpha('#99ccff', 0.4)) +
-            geom_rug(alpha = 1/2) +
-            geom_vline(aes(xintercept = val), colour = pal_exp(valcat), size = 3, alpha = 0.7) +
-            geom_vline(aes(xintercept = val), colour = pal_exp(valcat), size = 1, alpha = 1) + 
-            theme(
-              axis.title.y = element_blank(),
-              panel.grid = element_blank(), 
-              plot.title = element_text(size = 12)
-            ) + 
-            ggtitle(ptile)
-          
-        }
+        ##
+        # create plot
+        
+        # # get bins, have to use this for scaling density
+        # if(var %in% c('Total nitrogen', 'Total phosphorus')){
+        #   bins <- log10(1 + toplo$distval) %>%
+        #     range %>%
+        #     diff
+        #   
+        # } else {
+        #   bins <- toplo$distval %>%
+        #     range %>%
+        #     diff
+        # }
+        # bins <- bins/25
+        
+        # color for vertical line
+        valcol <- relcol(val, lims, var)
+        
+        # get %tile
+        ptile <- ecdf(toplo$distval)(val) %>%
+          round(2) %>%
+          `*`(100)
+        suff <- case_when(ptile %in% c(11,12,13) ~ "th",
+                      ptile %% 10 == 1 ~ 'st',
+                      ptile %% 10 == 2 ~ 'nd',
+                      ptile %% 10 == 3 ~'rd',
+                      TRUE ~ "th")
+        ptile <- paste0(ptile, suff, ' %tile')
+        
+        p <- ggplot(toplo, aes(x = distval)) + 
+          # geom_histogram(aes(y=..density..), fill = 'black', alpha = 0.2) + 
+          # geom_density(aes(y=..density..), fill = scales::alpha('#99ccff', 0.4)) +
+          geom_density(aes(y=..scaled..), fill = scales::alpha('#99ccff', 0.4)) +
+          geom_rug(alpha = 1/2) +
+          geom_vline(aes(xintercept = val), colour = valcol, size = 3, alpha = 0.7) +
+          geom_vline(aes(xintercept = val), colour = valcol, size = 1, alpha = 1) + 
+          theme(
+            axis.title.y = element_blank(),
+            panel.grid = element_blank(), 
+            plot.title = element_text(size = 12)
+          ) + 
+          ggtitle(ptile)
         
         # add plot themes  
         p <- p +
@@ -164,12 +179,8 @@ dst_fun <- function(catslng, dstdat, selvr, collims, pal_exp, box = T){
           xlab(var)
         
         # log-axes if tn, tp
-        if(var %in% c('Total nitrogen', 'Total phosphorus')){
-          if(box)
-            p <- p + scale_y_log10()
-          else
-            p <- p + scale_x_log10()
-        }
+        if(var %in% c('Total nitrogen', 'Total phosphorus'))
+          p <- p + scale_x_log10()
         
         return(p)
         

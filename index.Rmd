@@ -65,14 +65,23 @@ collims <- list(cscilim, ascilim, tnlim, tplim, condlim, cramlim, ipilim, blclim
 names(collims) <- numlab
 collims <- enframe(collims, 'var', 'lims')
 
-# color palette function for boxplots
-pal_exp <- colorFactor(
-  palette = c('#ff0000', '#f9c802', '#a9d70b'),
-  na.color = 'yellow',
-  levels = c('lo', 'md', 'hi'))
-
 # all colors used for categories
 allcol <- getdsccol(palout = T)
+
+# gauge cols, red, orange, green
+gauge_col <- c('#a9d70b', '#f9c802', '#ff0000')
+
+# round sqidat variables so gauge colors match relative plot colors
+sqidat <- sqidat %>% 
+  gather('var', 'val', ASCI, blc, bs, Cond, CSCI, Ev_FlowHab, H_AqHab, H_SubNat, hy, indexscore_cram, IPI, PCT_SAFN, ps, TN, TP, XCMG) %>% 
+  mutate(
+    val = case_when(
+      var %in% c('Cond', 'indexscore_cram', 'blc', 'bs', 'hy', 'ps') ~ round(val, 1), 
+      var %in% c('ASCI', 'CSCI', 'Ev_FlowHab', 'H_AqHab', 'H_SubNat', 'IPI', 'PCT_SAFN', 'TN', 'TP', 'XCMG') ~ round(val, 2)
+      )
+    ) %>% 
+  spread(var, val)
+  
 ```
 
 ```{r reactives}
@@ -245,7 +254,7 @@ dstbio <- reactive({
   selvr <- numlab[c(1:2)]
 
   # get boxplots
-  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
+  out <- dst_fun(catslng, dstdat, selvr, collims)
   
   return(out)
   
@@ -265,7 +274,7 @@ dstchm <- reactive({
   selvr <- numlab[c(3:5)]
   
   # get boxplots
-  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
+  out <- dst_fun(catslng, dstdat, selvr, collims)
   
   return(out)
   
@@ -285,7 +294,7 @@ dsthab <- reactive({
   selvr <- numlab[c(6:7)]
   
   # get boxplots
-  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
+  out <- dst_fun(catslng, dstdat, selvr, collims)
   
   return(out)
   
@@ -305,7 +314,7 @@ dstcrm <- reactive({
   selvr <- numlab[c(8:11)]
   
   # get boxplots
-  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
+  out <- dst_fun(catslng, dstdat, selvr, collims)
   
   return(out)
   
@@ -325,7 +334,7 @@ dstipi <- reactive({
   selvr <- numlab[c(12:16)]
   
   # get boxplots
-  out <- dst_fun(catslng, dstdat, selvr, collims, pal_exp, box = F)
+  out <- dst_fun(catslng, dstdat, selvr, collims)
   
   return(out)
   
@@ -482,99 +491,115 @@ output$phab <- renderGauge({
 ##
 # detail gauge outputs
 output$csci <- renderGauge({
-  val <- round(cats()$CSCI, 2)
+  val <- cats()$CSCI
   gauge(val, min = cscilim[1], max = cscilim[4], gaugeSectors(
-     danger = cscilim[c(1, 2)], warning = cscilim[c(2, 3)], success = cscilim[c(3, 4)])
+     danger = cscilim[c(1, 2)], warning = cscilim[c(2, 3)], success = cscilim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$asci <- renderGauge({
-  val <- round(cats()$ASCI, 1)
+  val <- cats()$ASCI
   gauge(val, min = ascilim[1], max = ascilim[4], gaugeSectors(
-     danger = ascilim[c(1, 2)], warning = ascilim[c(2, 3)], success = ascilim[c(3, 4)])
+     danger = ascilim[c(1, 2)], warning = ascilim[c(2, 3)], success = ascilim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$tn <- renderGauge({
-  val <- round(cats()$TN, 1)
+  val <- cats()$TN
   gauge(val, min = tnlim[4], max = tnlim[1], gaugeSectors(
-     danger = tnlim[c(3, 4)], warning = tnlim[c(2, 3)], success = tnlim[c(1, 2)])
+     danger = tnlim[c(2, 1)], warning = tnlim[c(3, 2)], success = tnlim[c(4, 3)], 
+     colors = gauge_col)
   )
 })
 output$tp <- renderGauge({
-  val <- round(cats()$TP, 1)
+  val <- cats()$TP
   gauge(val, min = tplim[4], max = tplim[1], gaugeSectors(
-     danger = tplim[c(3, 4)], warning = tplim[c(2, 3)], success = tplim[c(1, 2)])
+     danger = tplim[c(2, 1)], warning = tplim[c(3, 2)], success = tplim[c(4, 3)], 
+     colors = gauge_col)
   )
 })
 output$cond <- renderGauge({
-  val <- round(cats()$Cond, 1)
+  val <- cats()$Cond
   gauge(val, min = condlim[4], max = condlim[1], gaugeSectors(
-     danger = condlim[c(3, 4)], warning = condlim[c(2, 3)], success = condlim[c(1, 2)])
+     danger = condlim[c(2, 1)], warning = condlim[c(3, 2)], success = condlim[c(4, 3)], 
+     colors = gauge_col)
   )
 })
 output$cram <- renderGauge({
-  val <- round(cats()$indexscore_cram, 1)
+  val <- cats()$indexscore_cram
   gauge(val, min = cramlim[1], max = cramlim[4], gaugeSectors(
-     danger = cramlim[c(1, 2)], warning = cramlim[c(2, 3)], success = cramlim[c(3, 4)])
+     danger = cramlim[c(1, 2)], warning = cramlim[c(2, 3)], success = cramlim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$ipi <- renderGauge({
-  val <- round(cats()$IPI, 1)
+  val <- cats()$IPI
   gauge(val, min = ipilim[1], max = ipilim[4], gaugeSectors(
-     danger = ipilim[c(1, 2)], warning = ipilim[c(2, 3)], success = ipilim[c(3, 4)])
+     danger = ipilim[c(1, 2)], warning = ipilim[c(2, 3)], success = ipilim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$blc <- renderGauge({
-  val <- round(cats()$blc, 1)
+  val <- cats()$blc
   gauge(val, min = blclim[1], max = blclim[4], gaugeSectors(
-     danger = blclim[c(1, 2)], warning = blclim[c(2, 3)], success = blclim[c(3, 4)])
+     danger = blclim[c(1, 2)], warning = blclim[c(2, 3)], success = blclim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$bs <- renderGauge({
-  val <- round(cats()$bs, 1)
+  val <- cats()$bs
   gauge(val, min = bslim[1], max = bslim[4], gaugeSectors(
-     danger = bslim[c(1, 2)], warning = bslim[c(2, 3)], success = bslim[c(3, 4)])
+     danger = bslim[c(1, 2)], warning = bslim[c(2, 3)], success = bslim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$hy <- renderGauge({
-  val <- round(cats()$hy, 1)
+  val <- cats()$hy
   gauge(val, min = hylim[1], max = hylim[4], gaugeSectors(
-     danger = hylim[c(1, 2)], warning = hylim[c(2, 3)], success = hylim[c(3, 4)])
+     danger = hylim[c(1, 2)], warning = hylim[c(2, 3)], success = hylim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$ps <- renderGauge({
-  val <- round(cats()$ps, 1)
+  val <- cats()$ps
   gauge(val, min = pslim[1], max = pslim[4], gaugeSectors(
-     danger = pslim[c(1, 2)], warning = pslim[c(2, 3)], success = pslim[c(3, 4)])
+     danger = pslim[c(1, 2)], warning = pslim[c(2, 3)], success = pslim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$safn <- renderGauge({
-  val <- round(cats()$PCT_SAFN, 1)
+  val <- cats()$PCT_SAFN
   gauge(val, min = safnlim[1], max = safnlim[4], gaugeSectors(
-     danger = safnlim[c(1, 2)], warning = safnlim[c(2, 3)], success = safnlim[c(3, 4)])
+     danger = safnlim[c(1, 2)], warning = safnlim[c(2, 3)], success = safnlim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$aqhab <- renderGauge({
-  val <- round(cats()$H_AqHab, 1)
+  val <- cats()$H_AqHab
   gauge(val, min = aqhablim[1], max = aqhablim[4], gaugeSectors(
-     danger = aqhablim[c(1, 2)], warning = aqhablim[c(2, 3)], success = aqhablim[c(3, 4)])
+     danger = aqhablim[c(1, 2)], warning = aqhablim[c(2, 3)], success = aqhablim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$subnat <- renderGauge({
-  val <- round(cats()$H_SubNat, 1)
+  val <- cats()$H_SubNat
   gauge(val, min = subnatlim[1], max = subnatlim[4], gaugeSectors(
-     danger = subnatlim[c(1, 2)], warning = subnatlim[c(2, 3)], success = subnatlim[c(3, 4)])
+     danger = subnatlim[c(1, 2)], warning = subnatlim[c(2, 3)], success = subnatlim[c(3, 4)],
+     colors = gauge_col)
   )
 })
 output$flowhab <- renderGauge({
-  val <- round(cats()$Ev_FlowHab, 1)
+  val <- cats()$Ev_FlowHab
   gauge(val, min = flowhablim[1], max = flowhablim[4], gaugeSectors(
-     danger = flowhablim[c(1, 2)], warning = flowhablim[c(2, 3)], success = flowhablim[c(3, 4)])
+     danger = flowhablim[c(1, 2)], warning = flowhablim[c(2, 3)], success = flowhablim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 output$veg <- renderGauge({
-  val <- round(cats()$XCMG, 1)
+  val <- cats()$XCMG
   gauge(val, min = veglim[1], max = veglim[4], gaugeSectors(
-     danger = veglim[c(1, 2)], warning = veglim[c(2, 3)], success = veglim[c(3, 4)])
+     danger = veglim[c(1, 2)], warning = veglim[c(2, 3)], success = veglim[c(3, 4)], 
+     colors = gauge_col)
   )
 })
 
@@ -902,7 +927,7 @@ column(12,
 #### CRAM components
 
 ```{r}
-renderText({paste0('Total score: ', round(cats()$indexscore_cram, 1))})
+renderText({paste0('Total score: ', cats()$indexscore_cram)})
 column(width = 12,
                   shinydashboard::box(gaugeOutput('blc', height = '500px'), title = HTML('<h5><i>Buffer and landscape:</i></h5>'), width = 3),
                   shinydashboard::box(gaugeOutput('bs', height = '500px'), title = HTML('<h5><i>Biotic structure:</i></h5>'), width = 3),
@@ -914,7 +939,7 @@ column(width = 12,
 #### Index of physical habitat, PHAB metrics
 
 ```{r}
-renderText({paste0('Total score: ', round(cats()$IPI, 1))})
+renderText({paste0('Total score: ', cats()$IPI)})
 column(width = 12,
                   shinydashboard::box(gaugeOutput('safn', height = '500px'), title = HTML('<h5><i>% sands and fines:</i></h5>'), width = 3),
                   shinydashboard::box(gaugeOutput('aqhab', height = '500px'), title = HTML('<h5><i>Diversity of habitat:</i></h5>'), width = 3),
@@ -957,13 +982,13 @@ plotOutput('plodsthab')
 #### CRAM components
 
 ```{r}
-renderText({paste0('Total score: ', round(cats()$indexscore_cram, 1))})
+renderText({paste0('Total score: ', cats()$indexscore_cram)})
 plotOutput('plodstcrm')
 ```
 
 #### Index of physical habitat, PHAB metrics
 
 ```{r}
-renderText({paste0('Total score: ', round(cats()$IPI, 1))})
+renderText({paste0('Total score: ', cats()$IPI)})
 plotOutput('plodstipi')
 ```
