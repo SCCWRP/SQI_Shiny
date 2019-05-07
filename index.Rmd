@@ -16,11 +16,10 @@ library(randomForest)
 library(patchwork)
 library(flexdashboard)
 library(SQI)
-# devtools::load_all('../SQI/.')
 library(mapview)
 library(leaflet)
 library(sf)
-library(shinyWidgets)
+library(here)
 # library(ShinyDash)
 
 downloadButtonRmd <- function (outputId, label = "Download", class = NULL, ...)  {
@@ -30,7 +29,7 @@ downloadButtonRmd <- function (outputId, label = "Download", class = NULL, ...) 
 }
 
 # source functions and data
-source("R/funcs.R")
+source(here('R', 'funcs.R'))
 data(sqidat)
 data(sheds)
 data(cntys)
