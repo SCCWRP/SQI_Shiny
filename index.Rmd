@@ -1,7 +1,9 @@
 ---
 title: "SQI dashboard"
 output: 
-  flexdashboard::flex_dashboard
+  flexdashboard::flex_dashboard:
+    includes:
+      in_header: cssloaders_in_header.html
 runtime: shiny
 ---
 
@@ -20,6 +22,7 @@ library(mapview)
 library(leaflet)
 library(sf)
 library(here)
+library(shinycssloaders)
 # library(ShinyDash)
 
 downloadButtonRmd <- function (outputId, label = "Download", class = NULL, ...)  {
@@ -841,7 +844,7 @@ In general, higher CSCI and ASCI scores indicate more intact biological communit
 
 The **Relative details** tab repeats information on the **Details** tab for the selected site, with the addition of a relative context for the observed data.  The observed values are shown relative to the distribution of values across all sites on the map.  This information can be used to help characterize which components of the SQI are potentially driving the site scores.  
 
-The spatial filters on the top left determine how the relative values are calculated.  For example, selecting only one watershed will plot the observed values for the selected site against all other values for that watershed.  This information can help place the observed values for the selected site in a more spatially relevant context, as compared to looking at relative values for the entire region.  Sites can be filtered by SMC watersheds, counties, Water Board regional boundaries, or stream constraint classes (see [SCAPE](https://sccwrp.shinyapps.io/SCAPE)).
+The spatial filters on the top left determine how the relative values are calculated.  For example, selecting only one watershed will plot the observed values for the selected site against all other values for that watershed.  This information can help place the observed values for the selected site in a more spatially relevant context, as compared to looking at relative values for the entire region.  Sites can be filtered by SMC watersheds, counties, Water Board regional boundaries, stream constraint classes (see [SCAPE](https://sccwrp.shinyapps.io/SCAPE)), or sample year.
 
 #### Attribution
 
@@ -961,19 +964,19 @@ Column {.tabset}
 #### Biology
 
 ```{r}
-plotOutput('plodstbio')
+plotOutput('plodstbio') %>% withSpinner()
 ```
 
 #### Chemistry
 
 ```{r}
-plotOutput('plodstchm')
+plotOutput('plodstchm') %>% withSpinner()
 ```
 
 #### Habitat
 
 ```{r}
-plotOutput('plodsthab')
+plotOutput('plodsthab') %>% withSpinner()
 ```
 
 ### Additional habitat components
@@ -982,12 +985,12 @@ plotOutput('plodsthab')
 
 ```{r}
 renderText({paste0('Total score: ', cats()$indexscore_cram)})
-plotOutput('plodstcrm')
+plotOutput('plodstcrm') %>% withSpinner()
 ```
 
 #### Index of physical habitat, PHAB metrics
 
 ```{r}
 renderText({paste0('Total score: ', cats()$IPI)})
-plotOutput('plodstipi')
+plotOutput('plodstipi') %>% withSpinner()
 ```
