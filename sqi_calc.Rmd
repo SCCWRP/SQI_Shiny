@@ -1,82 +1,301 @@
 ---
 title: "SQI calculator"
 output: 
-  html_document
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
 runtime: shiny
 ---
 
 [Back to SQI dashboard](https://sccwrp.shinyapps.io/SQI_shiny)
 
-```{r global, include = FALSE, message = F, warning = F}
+```{r setup, include = FALSE, message = F, warning = F}
 knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, echo = F)
 
 # packages
 library(shiny)
 library(tidyverse)
 library(SQI)
+library(flexdashboard)
+library(here)
+
+source(here('R', 'funcs.R'))
+
+
+# numeric variable names
+numnms <- c('CSCI', 'ASCI', 'TN', 'TP', 'Cond', 'indexscore_cram', 'IPI', 'blc', 'bs', 'hy', 'ps', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
+numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', 'Index of physical integrity', 'Buffer and landscape', 'Biotic structure', 'Hydrologic condition', 'Physical structure', '% sands and fines', 'Diversity of habitat', 'Diversity of substrate', 'Evenness of flow habitat', 'Riparian veg. cover')
+names(numnms) <- numlab
+
+# color lims
+cscilim <- c(0, 0.63, 0.79, 1)
+ascilim <- c(0, 0.70, 0.83, 1)
+tnlim <- c(2, 1, 0.5, 0)
+tplim <- c(0.2, 0.1, 0.05, 0)
+condlim <- c(2000, 1200, 600, 0)
+cramlim <- c(0, 63, 72, 100)
+ipilim <- c(0, 0.71, 0.84, 1)
+blclim <- c(0, 72, 82, 100)
+bslim <- c(0, 38, 54, 100)
+hylim <- c(0, 51, 64, 100)
+pslim <- c(0, 44, 60, 100)
+safnlim <- c(0, 0.16, 0.32, 1)
+aqhablim <- c(0, 0.16, 0.32, 1)
+subnatlim <- c(0, 0.16, 0.32, 1)
+flowhablim <- c(0, 0.16, 0.32, 1)
+veglim <- c(0, 0.16, 0.32, 1)
+
+# for boxplot color limits
+collims <- list(cscilim, ascilim, tnlim, tplim, condlim, cramlim, ipilim, blclim, bslim, hylim, pslim, safnlim, aqhablim, subnatlim, flowhablim, veglim)
+names(collims) <- numlab
+collims <- enframe(collims, 'var', 'lims')
+
+# all colors used for categories
+allcol <- getdsccol(palout = T)
+
+# gauge cols, red, orange, green
+gauge_col <- c('#a9d70b', '#f9c802', '#ff0000')
+
 ```
 
 ```{r, echo = F}
-column(12, 
-       column(4, 
-              numericInput('CSCI', 'CSCI:', value = 1, min = 0, step = 0.1)
-              ), 
-       column(4, 
-              numericInput('ASCI', 'ASCI:', value = 1, min = 0, step = 0.1)
-              ), 
-       column(4, 
-              numericInput('TN', 'Total Nitrogen (mg/L):', value = 5, min = 0, step = 1)
-              )
-)
-column(12, 
-       column(4, 
-              numericInput('TP', 'Total Phosphorus (mg/L):', value = 1, min = 0, step = 1)
-              ),
-       column(4, 
-              numericInput('Cond', 'Conductivity (uS/cm):', value = 500, min = 0, step = 10)
-              ),
-       column(4, 
-              numericInput('blc', 'CRAM, buffer landscape condition:', value =50, min = 0, step = 10, max = 100)
-              )
-       )
-column(12, 
-       column(4, 
-              numericInput('ps', 'CRAM, physical structure:', value = 50, min = 0, step = 10, max = 100)
-              ),
-       column(4, 
-              numericInput('PCT_SAFN', 'IPI, % sands and fines:', value = 0.5, min = 0, step = 0.1, max = 1)
-              )
-       )
-column(12, 
-       column(4, actionButton("run", "Run!"))
-)
-```
-
-```{r, echo = F}
-res <- eventReactive(input$run, {
+sqires <- eventReactive(input$run, {
 
   # inputs
-  out <- reactiveValuesToList(input) %>% 
-    enframe('var', 'val') %>% 
-    filter(!var %in% 'run') %>% 
-    unnest %>% 
-    spread(var, val) %>% 
-    sqi %>% 
-    dplyr::select(pChem, pHab, pChemHab, BiologicalCondition, OverallStressCondition_detail, StreamHealthIndex) %>% 
+  out <- reactiveValuesToList(input) %>%
+    enframe('var', 'val') %>%
+    filter(!var %in% 'run') %>%
+    unnest %>%
+    spread(var, val) %>%
+    sqi %>%
+    # dplyr::select(pChem, pHab, pChemHab, BiologicalCondition, OverallStressCondition_detail, StreamHealthIndex) %>%
     rename(
       pOverall = pChemHab,
       `Biological Condition` = BiologicalCondition,
-      `Stress Condition` = OverallStressCondition_detail, 
+      `Stress Condition` = OverallStressCondition_detail,
       SQI = StreamHealthIndex
     )
-  
+
   return(out)
+
+})
+
+##
+# SQI descriptor outputs
+output$overall <- flexdashboard::renderValueBox({
+  req(nrow(sqires()) > 0)
+  txtin <- sqires()$SQI
+  colin <- getdsccol(txtin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-plus', color = colin)
+  })
+output$biolcon <- flexdashboard::renderValueBox({
+  req(nrow(sqires()) > 0)
+  txtin <- sqires()$`Biological Condition`
+  colin <- getdsccol(txtin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-leaf', color = colin)
+  })
+output$strsdet <- flexdashboard::renderValueBox({
+  req(nrow(sqires()) > 0)
+  txtin <- sqires()$`Stress Condition`
+  colin <- getdsccol(txtin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-flash', color = colin)
+  })
+
+
+##
+# probability gauge outputs
+output$pchemhab <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- round(100 * sqires()$pOverall, 1)
+  gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
+   success = c(0, 10), warning = c(10, 90), danger = c(90, 100),
+   colors = allcol[c(1, 5, 4)]
+  ))
+           
+})
+output$pchem <- renderGauge({
+  req(nrow(sqires()) > 0)  
+  val <- round(100 * sqires()$pChem, 1)
+  gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
+     success = c(0, 10), warning = c(10, 90), danger = c(90, 100),
+     colors = allcol[c(1, 5, 4)]
+  ))
   
 })
+output$phab <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- round(100 * sqires()$pHab, 1)
+  gauge(val, min = 0, max = 100, symbol = '%', gaugeSectors(
+     success = c(0, 10), warning = c(10, 90), danger = c(90, 100),
+     colors = allcol[c(1, 5, 4)]
+  )
+  )
+  
+})
+
+##
+# detail gauge outputs
+output$csci <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- sqires()$CSCI
+  gauge(val, min = cscilim[1], max = cscilim[4], gaugeSectors(
+     danger = cscilim[c(1, 2)], warning = cscilim[c(2, 3)], success = cscilim[c(3, 4)], 
+     colors = gauge_col)
+  )
+})
+output$asci <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- sqires()$ASCI
+  gauge(val, min = ascilim[1], max = ascilim[4], gaugeSectors(
+     danger = ascilim[c(1, 2)], warning = ascilim[c(2, 3)], success = ascilim[c(3, 4)], 
+     colors = gauge_col)
+  )
+})
+output$tn <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- sqires()$TN
+  gauge(val, min = tnlim[4], max = tnlim[1], gaugeSectors(
+     danger = tnlim[c(2, 1)], warning = tnlim[c(3, 2)], success = tnlim[c(4, 3)], 
+     colors = gauge_col)
+  )
+})
+output$tp <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- sqires()$TP
+  gauge(val, min = tplim[4], max = tplim[1], gaugeSectors(
+     danger = tplim[c(2, 1)], warning = tplim[c(3, 2)], success = tplim[c(4, 3)], 
+     colors = gauge_col)
+  )
+})
+output$cond <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- sqires()$Cond
+  gauge(val, min = condlim[4], max = condlim[1], gaugeSectors(
+     danger = condlim[c(2, 1)], warning = condlim[c(3, 2)], success = condlim[c(4, 3)], 
+     colors = gauge_col)
+  )
+})
+output$blcgge <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- sqires()$blc
+  gauge(val, min = blclim[1], max = blclim[4], gaugeSectors(
+     danger = blclim[c(1, 2)], warning = blclim[c(2, 3)], success = blclim[c(3, 4)], 
+     colors = gauge_col)
+  )
+})
+output$psgge <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- sqires()$ps
+  gauge(val, min = pslim[1], max = pslim[4], gaugeSectors(
+     danger = pslim[c(1, 2)], warning = pslim[c(2, 3)], success = pslim[c(3, 4)], 
+     colors = gauge_col)
+  )
+})
+output$safn <- renderGauge({
+  req(nrow(sqires()) > 0)
+  val <- sqires()$PCT_SAFN
+  gauge(val, min = safnlim[1], max = safnlim[4], gaugeSectors(
+     danger = safnlim[c(1, 2)], warning = safnlim[c(2, 3)], success = safnlim[c(3, 4)], 
+     colors = gauge_col)
+  )
+})
+
 ```
+
+### Inputs
 
 ```{r, echo = F}
-renderTable({res()})
+column(12,
+       column(4,
+              numericInput('CSCI', 'CSCI:', value = 1, min = 0, step = 0.1)
+              ),
+       column(4,
+              numericInput('ASCI', 'ASCI:', value = 1, min = 0, step = 0.1)
+              ),
+       column(4,
+              numericInput('TN', 'Total Nitrogen (mg/L):', value = 5, min = 0, step = 1)
+              )
+)
+column(12,
+       column(4,
+              numericInput('TP', 'Total Phosphorus (mg/L):', value = 1, min = 0, step = 1)
+              ),
+       column(4,
+              numericInput('Cond', 'Conductivity (uS/cm):', value = 500, min = 0, step = 10)
+              ),
+       column(4,
+              numericInput('blc', 'CRAM, buffer landscape condition:', value =50, min = 0, step = 10, max = 100)
+              )
+       )
+column(12,
+       column(4,
+              numericInput('ps', 'CRAM, physical structure:', value = 50, min = 0, step = 10, max = 100)
+              ),
+       column(4,
+              numericInput('PCT_SAFN', 'IPI, % sands and fines:', value = 0.5, min = 0, step = 0.1, max = 1)
+              )
+       )
+column(12,
+       column(4, actionButton("run", "Run!"))
+)
+
+renderTable({sqires()})
 ```
 
+### Overall
 
+```{r}
+flexdashboard::valueBoxOutput('overall')
+```
+
+### Biological condition
+
+```{r}
+flexdashboard::valueBoxOutput('biolcon')
+```
+
+### Stress condition
+
+```{r}
+flexdashboard::valueBoxOutput('strsdet')
+```
+
+### Probability of stress
+
+```{r}
+column(width = 12,
+shinydashboard::box(gaugeOutput('pchem'), title = HTML('<h4><i>Pr. of chemistry stress:</i></h4>'), width = 3),
+column(width = 1, HTML('<br><br><br><br><img src="www/mult.png" width="20" height="20">')),
+shinydashboard::box(gaugeOutput('phab'), title = HTML('<h4><i>Pr. of habitat stress:</i></h4>'), width = 3),
+column(width = 1, HTML('<br><br><br><br><img src="www/equal.png" width="20" height="20">')),
+shinydashboard::box(gaugeOutput('pchemhab'), title = HTML('<h4><i>Pr. of overall stress:</i></h4>'), width = 3)
+)
+```
+
+### Biology
+
+```{r}
+ column(width = 12,
+                  shinydashboard::box(gaugeOutput('csci'), title = HTML('<h5><i>CSCI:</i></h5>'), width = 4),
+                  shinydashboard::box(gaugeOutput('asci'), title = HTML('<h5><i>ASCI:</i></h5>'), width = 4)
+ )
+```
+
+### Chemistry
+
+```{r}
+column(12, 
+  shinydashboard::box(gaugeOutput('tn'), title = HTML('<h5><i>Total nitrogen:</i></h5>'), width = 4),
+  shinydashboard::box(gaugeOutput('tp'), title = HTML('<h5><i>Total phosphorus:</i></h5>'), width = 4),
+  shinydashboard::box(gaugeOutput('cond'), title = HTML('<h5><i>Conductivity:</i></h5>'), width = 4)
+)
+```
+
+### Habitat
+
+```{r}
+ column(width = 12,
+  shinydashboard::box(gaugeOutput('blcgge'), title = HTML('<h5><i>CRAM, buffer landscape condition</i></h5>'), width = 4),
+  shinydashboard::box(gaugeOutput('psgge'), title = HTML('<h5><i>CRAM, physical structure:</i></h5>'), width = 4),
+  shinydashboard::box(gaugeOutput('safn'), title = HTML('<h5><i>IPI, % sand and fines:</i></h5>'), width = 4)
+ )
+```
