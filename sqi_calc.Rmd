@@ -36,8 +36,8 @@ data(rwqbs)
 data(cnstr)
 
 # numeric variable names
-numnms <- c('CSCI', 'ASCI', 'TN', 'TP', 'Cond', 'indexscore_cram', 'IPI', 'blc', 'bs', 'hy', 'ps', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
-numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', 'Index of physical integrity', 'Buffer and landscape', 'Biotic structure', 'Hydrologic condition', 'Physical structure', '% sands and fines', 'Diversity of habitat', 'Diversity of substrate', 'Evenness of flow habitat', 'Riparian veg. cover')
+numnms <- c('CSCI', 'ASCI', 'TN', 'TP', 'Cond', 'indexscore_cram', 'IPI', 'blc', 'bs', 'ps', 'hy', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
+numlab <- c('CSCI', 'ASCI', 'Total nitrogen', 'Total phosphorus', 'Conductivity', 'CRAM index score', 'Index of physical integrity', 'Buffer and landscape', 'Biotic structure', 'Physical structure', 'Hydrologic condition', '% sands and fines', 'Diversity of habitat', 'Diversity of substrate', 'Evenness of flow habitat', 'Riparian veg. cover')
 names(numnms) <- numlab
 
 # color lims
@@ -50,8 +50,8 @@ cramlim <- c(0, 63, 72, 100)
 ipilim <- c(0, 0.71, 0.84, 1)
 blclim <- c(0, 72, 82, 100)
 bslim <- c(0, 38, 54, 100)
-hylim <- c(0, 51, 64, 100)
 pslim <- c(0, 44, 60, 100)
+hylim <- c(0, 51, 64, 100)
 safnlim <- c(0, 0.16, 0.32, 1)
 aqhablim <- c(0, 0.16, 0.32, 1)
 subnatlim <- c(0, 0.16, 0.32, 1)
@@ -59,7 +59,7 @@ flowhablim <- c(0, 0.16, 0.32, 1)
 veglim <- c(0, 0.16, 0.32, 1)
 
 # for boxplot color limits
-collims <- list(cscilim, ascilim, tnlim, tplim, condlim, cramlim, ipilim, blclim, bslim, hylim, pslim, safnlim, aqhablim, subnatlim, flowhablim, veglim)
+collims <- list(cscilim, ascilim, tnlim, tplim, condlim, cramlim, ipilim, blclim, bslim, pslim, hylim, safnlim, aqhablim, subnatlim, flowhablim, veglim)
 names(collims) <- numlab
 collims <- enframe(collims, 'var', 'lims')
 
@@ -642,7 +642,7 @@ column(12,
               numericInput('ps_inp', 'Physical structure:', value = 63, min = 0, step = 10, max = 100)
               ),
        column(4,
-              numericInput('hs_inp', 'Hydrologic structure:', value =92, min = 0, step = 10, max = 100)
+              numericInput('hy_inp', 'Hydrologic structure:', value =92, min = 0, step = 10, max = 100)
               )
 )
 column(12,
@@ -685,7 +685,7 @@ Column {data-width=500}
 
 This interactive web page will allow you to explore SQI scores for stream sampling sites from the Stormwater Monitoring Coalition (SMC) Data Portal.  Start by selecting a site by clicking a location on the map to the left.  Scroll through the SQI **Scores**, score **Details**, and **Relative details** for the selected site using the menu selections on the top. 
 
-Please visit [here](https://sccwrp.shinyapps.io/SQI_Shiny) to view the complete dashboard.
+Please visit [here](https://sccwrp.shinyapps.io/SQI_Shiny) to view the complete dashboard.  For batch SQI calculations, check out the [SQI](https://github.com/SCCWRP/SQI) R package.
 
 #### SQI structure
 
@@ -867,18 +867,21 @@ Column {.tabset}
 #### Biology
 
 ```{r}
+renderText({NULL}) # add scroll bar
 plotOutput('plodstbio') %>% withSpinner()
 ```
 
 #### Chemistry
 
 ```{r}
+renderText({NULL})
 plotOutput('plodstchm') %>% withSpinner()
 ```
 
 #### Habitat
 
 ```{r}
+renderText({NULL})
 plotOutput('plodsthab') %>% withSpinner()
 ```
 

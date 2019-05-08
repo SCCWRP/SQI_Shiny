@@ -87,7 +87,7 @@ relcol <- function(val, lims, var, gaugecols =c('#ff0000', '#f9c802', '#a9d70b')
     lbs <- rev(lbs)
     brks <- c(Inf, lims[2], lims[3], -Inf) 
   }
-  valcat <- cut(val, breaks = brks, labels = lbs, right = F)
+  valcat <- cut(val, breaks = brks, labels = lbs, right = T)
   
   out <- pal_exp(valcat)
   
