@@ -385,7 +385,7 @@ output$map <- renderLeaflet({
 # leaflet proxy for marker select
 map <- leafletProxy("map")
 
-# binding for marker select
+# binding for marker select and year
 makeReactiveBinding('selsit')
 
 # the selection
@@ -423,7 +423,7 @@ observeEvent(input$map_marker_click, {
       radius=5, 
       weight = 1,
       fillOpacity = 1,
-      label = ~paste0(MasterID, ': ', toshw)
+      label = ~paste0(MasterID, ' (', yr, '): ', toshw)
     ) %>% 
     addCircleMarkers(
       data = selsitplo, 
@@ -435,7 +435,7 @@ observeEvent(input$map_marker_click, {
       radius=10, 
       weight = 6,
       fillOpacity = 1,
-      label = ~paste0(MasterID, ': ', toshw)
+      label = ~paste0(MasterID, ' (', yr, '): ', toshw)
     )
       
 })
@@ -745,7 +745,16 @@ column(width = 12,
   
   column(width = 6, 
          
-    renderText(paste0('Selected site: ', selsit))
+    renderText({
+      
+      txt <- 'Selected site: '
+      
+      if(nrow(cats()) > 0)
+        txt <- paste0(txt, selsit, ' (', cats()$yr, ')')
+      
+      return(txt)
+      
+    })
     
   )
   
