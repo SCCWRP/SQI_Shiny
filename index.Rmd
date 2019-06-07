@@ -750,7 +750,7 @@ column(width = 12,
       txt <- 'Selected site: '
       
       if(nrow(cats()) > 0)
-        txt <- paste0(txt, selsit, ' (', cats()$yr, ')')
+        txt <- paste0(txt, selsit, ' (Year ', cats()$yr, ', COMID ', cats()$COMID, ')')
       
       return(txt)
       
