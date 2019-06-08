@@ -46,7 +46,12 @@ sqidat <- sqidat %>%
 load(file = '../../Channels in developed landscapes_RM/Marcus/landscape_mod/data/calicls.RData')
 
 cnstr <- calicls %>% 
-  dplyr::select(COMID, strcls) %>% 
+  dplyr::select(COMID, strcls, core0.10, core0.50, core0.90) %>% 
+  rename(
+    lower = core0.10, 
+    meds = core0.50,
+    upper = core0.90
+  ) %>% 
   .[sheds,]
 
 cnstrnogeo <- cnstr %>% st_set_geometry(NULL)

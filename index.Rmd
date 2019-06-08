@@ -24,6 +24,7 @@ library(sf)
 library(shinyWidgets)
 library(here)
 library(shinycssloaders)
+library(RColorBrewer)
 # library(ShinyDash)
 
 downloadButtonRmd <- function (outputId, label = "Download", class = NULL, ...)  {
@@ -160,7 +161,7 @@ polys <- reactive({
     out <- rwqbs %>% 
       rename(pllb = RBNAME)
   
-  if(flby %in% c('Constraint classes', 'Years')){ # use sheds as bas
+  if(flby %in% c('Constraint classes', 'Years')){ # use sheds as base
     out <- sheds %>% 
       rename(pllb = SMC_Name)
     return(out)
@@ -197,6 +198,19 @@ sitedat <- reactive({
   out <- sqidat[polys, ]
   
   return(out)
+  
+})
+
+# expected scores plot from landscape model
+expplo <- reactive({
+  
+  cats <- cats()
+  
+  req(nrow(cats) > 0)
+  
+  p <- expplo_fun(cats)
+  
+  return(p)
   
 })
 
@@ -446,19 +460,19 @@ output$overall <- flexdashboard::renderValueBox({
   req(nrow(cats()) > 0)
   txtin <- cats()$StreamHealthIndex
   colin <- getdsccol(txtin)
-  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-plus', color = colin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 60%"), icon = 'glyphicon-plus', color = colin)
   })
 output$biolcon <- flexdashboard::renderValueBox({
   req(nrow(cats()) > 0)
   txtin <- cats()$BiologicalCondition
   colin <- getdsccol(txtin)
-  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-leaf', color = colin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 60%"), icon = 'glyphicon-leaf', color = colin)
   })
 output$strsdet <- flexdashboard::renderValueBox({
   req(nrow(cats()) > 0)
   txtin <- cats()$OverallStressCondition_detail
   colin <- getdsccol(txtin)
-  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 70%"), icon = 'glyphicon-flash', color = colin)
+  flexdashboard::valueBox(tags$p(txtin, style = "font-size: 60%"), icon = 'glyphicon-flash', color = colin)
   })
 
 ##
@@ -830,6 +844,12 @@ The stress condition at a site is based on a modelled probability of biology bei
 knitr::include_graphics("www/strpr_ex.PNG")
 ```
 
+Finally, the expected lower and upper CSCI score for a site (if available) is shown to provide context for the observed CSCI score.  These limits are based on a landscape model that predicts the ranges of CSCI scores that are likely possible relative to the landscape development in the watershed for a stream reach. This provides information on whether a site is under scoring, over scoring, or scoring as expected relative to the landscape model predictions and can provide a basis for prioritization.  Please visit the [SCAPE](https://sccwrp.shinyapps.io/scape/) application for additional details.   
+
+```{r, out.width = "90%", fig.align = 'center'}
+knitr::include_graphics("www/scape_ex.PNG")
+```
+
 #### Details
 
 The **Details** tab shows the observed biological, chemistry, and habitat data that were collected at the selected site.  This information was used to create the underlying model of the SQI.  
@@ -890,12 +910,29 @@ flexdashboard::valueBoxOutput('strsdet')
 
 ```{r}
 column(width = 12,
-shinydashboard::box(gaugeOutput('pchem'), title = HTML('<h4><i>Pr. of chemistry stress:</i></h4>'), width = 3),
+shinydashboard::box(gaugeOutput('pchem'), title = HTML('<h5><i>Chemistry:</i></h5>'), width = 3),
 column(width = 1, HTML('<br><br><br><br><img src="www/mult.png" width="20" height="20">')),
-shinydashboard::box(gaugeOutput('phab'), title = HTML('<h4><i>Pr. of habitat stress:</i></h4>'), width = 3),
+shinydashboard::box(gaugeOutput('phab'), title = HTML('<h5><i>Habitat:</i></h5>'), width = 3),
 column(width = 1, HTML('<br><br><br><br><img src="www/equal.png" width="20" height="20">')),
-shinydashboard::box(gaugeOutput('pchemhab'), title = HTML('<h4><i>Pr. of overall stress:</i></h4>'), width = 3)
+shinydashboard::box(gaugeOutput('pchemhab'), title = HTML('<h5><i>Overall:</i></h5>'), width = 3)
 )
+```
+
+### Expected CSCI score from landscape model
+
+```{r}
+output$expplo <- renderPlot({
+  
+  req(!is.na(cats()))
+  
+  validate(
+    need(!is.na(cats()$strcls), 'No data')
+  )
+  
+  expplo()
+  
+  })
+plotOutput('expplo')
 ```
 
 Details

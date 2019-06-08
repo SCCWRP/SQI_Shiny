@@ -191,3 +191,81 @@ dst_fun <- function(catslng, dstdat, selvr, collims){
   return(out)
   
 }
+
+#' Create plot for expected site scores from landscape model and constraint classes
+#'
+#' @param cats input data for selected site
+#'
+#' @return
+#' @export
+#'
+#' @examples
+expplo_fun <- function(cats){
+  
+  # levels
+  strcls_levs <- c('likely unconstrained', 'possibly unconstrained', 'possibly constrained', 'likely constrained')
+  perf_levs <- c('under scoring', 'expected', 'over scoring')
+  
+  # color palette for stream expectations
+  pal_exp <- colorFactor(
+    palette = brewer.pal(9, 'Paired')[c(2, 1, 5, 6)],
+    na.color = 'yellow',
+    levels = strcls_levs
+    )
+  
+  # remove geometry
+  cats <- cats %>% 
+    st_set_geometry(NULL)
+  
+  toplo1 <- cats %>%
+    dplyr::select(COMID, MasterID, strcls, CSCI, strcls, lower, meds, upper) %>%
+    dplyr::mutate(
+      strcls = factor(strcls, levels = strcls_levs),
+      perf_mlt = case_when(
+        CSCI < lower ~ 'under scoring', 
+        CSCI > upper ~ 'over scoring', 
+        CSCI >= lower & CSCI <= upper ~ 'expected'
+      ), 
+      perf_mlt = factor(perf_mlt, levels = perf_levs)
+    ) %>%
+    dplyr::rename(
+      `Stream Class` = strcls,
+      `Relative\nscore` = perf_mlt
+    ) %>% 
+    tidyr::gather('var', 'val', lower, meds, upper)
+  
+  # total expected range
+  toplo2 <- toplo1 %>%
+    dplyr::select(COMID, MasterID, `Stream Class`, var, val)
+    
+  # median expectation
+  toplo3 <- toplo1 %>%
+    dplyr::select(COMID, MasterID, var, val) %>% 
+    filter(var %in% 'meds')
+
+  p <- ggplot(toplo1, aes(y = MasterID, x = val)) +
+    geom_line(data = toplo1, aes(x = val, colour = `Stream Class`), alpha = 0.1, size = 2) +
+    geom_line(aes(colour = `Stream Class`), alpha = 0.6, size = 2) +
+    geom_point(data = toplo3, colour = 'white', size = 1, alpha = 1, shape = 15) +
+    theme_bw(base_family = 'serif', base_size = 16) +
+    theme(
+      # axis.text.y = element_blank(),
+      axis.title.y = element_blank(),
+      # axis.title.x = element_blank(), 
+      axis.ticks.y = element_blank(), 
+      legend.position = 'top', 
+      title = element_text(size = 14)
+    ) +
+    scale_x_continuous('CSCI', limits = c(0.1, 1.4), breaks = seq(0.1, 1.4, by = 0.2)) +
+    scale_colour_manual('Stream segment class', values = pal_exp(levels(toplo1$`Stream Class`)), drop = F) +
+    geom_point(aes(x = CSCI, fill = `Stream Class`, shape = `Relative\nscore`), size = 3.5, alpha = 0.8) +
+    geom_vline(xintercept = 0.79, linetype = 'dashed', size = 1) +
+    scale_shape_manual('Relative site score', values = c(25, 21, 24), drop = FALSE) +
+    scale_fill_manual(values = pal_exp(levels(toplo1$`Stream Class`)), na.value = 'yellow', guide = F, drop = F) +
+    guides(shape = guide_legend(title.position = 'top'), colour = guide_legend(title.position = 'top', ncol = 2))
+  
+  return(p)
+  
+}
+  
+  
