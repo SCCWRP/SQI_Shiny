@@ -5,6 +5,6 @@ account: sccwrp
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 527861
-bundleId: 2146503
+bundleId: 2146750
 url: https://sccwrp.shinyapps.io/sqi_shiny/
-when: 1560284967.68977
+when: 1560291214.41148

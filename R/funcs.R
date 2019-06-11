@@ -247,15 +247,19 @@ expplo_fun <- function(cats){
     geom_line(data = toplo1, aes(x = val, colour = `Stream Class`), alpha = 0.1, size = 2) +
     geom_line(aes(colour = `Stream Class`), alpha = 0.6, size = 2) +
     geom_point(data = toplo3, colour = 'white', size = 1, alpha = 1, shape = 15) +
-    theme_bw(base_family = 'serif', base_size = 16) +
+    theme_minimal(base_family = 'serif', base_size = 16) +
     theme(
       axis.text.y = element_blank(),
       axis.title.y = element_blank(),
-      axis.text.x = element_text(size = 9),
-      axis.title.x = element_text(size = 9),
+      axis.text.x = element_text(size = 12),
+      axis.title.x = element_text(size = 10),
       axis.ticks.y = element_blank(), 
       legend.position = 'top', 
-      title = element_text(size = 14)
+      panel.grid = element_blank(),
+      title = element_text(size = 14), 
+      legend.text= element_text(size = 10),
+      axis.line.x = element_line(colour = 'black', size=0.5, linetype='solid'),
+      axis.ticks.x = element_line(colour = 'black', size=0.5, linetype='solid')
     ) +
     scale_x_continuous('CSCI', limits = c(0.1, 1.4), breaks = seq(0.1, 1.4, by = 0.2)) +
     scale_colour_manual('Stream segment class', values = pal_exp(levels(toplo1$`Stream Class`)), drop = F) +
@@ -278,8 +282,7 @@ expplo_fun <- function(cats){
 #'
 #' @examples
 formdl_fun <- function(dat){
-  
-  browser()
+
   # rename columns, remove some columns, remove sf class but retain lat, lon
   # get ecdf ests for all observed data
   out <- dat %>% 
