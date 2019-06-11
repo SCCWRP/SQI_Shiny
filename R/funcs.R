@@ -249,16 +249,17 @@ expplo_fun <- function(cats){
     geom_point(data = toplo3, colour = 'white', size = 1, alpha = 1, shape = 15) +
     theme_bw(base_family = 'serif', base_size = 16) +
     theme(
-      # axis.text.y = element_blank(),
+      axis.text.y = element_blank(),
       axis.title.y = element_blank(),
-      # axis.title.x = element_blank(), 
+      axis.text.x = element_text(size = 9),
+      axis.title.x = element_text(size = 9),
       axis.ticks.y = element_blank(), 
       legend.position = 'top', 
       title = element_text(size = 14)
     ) +
     scale_x_continuous('CSCI', limits = c(0.1, 1.4), breaks = seq(0.1, 1.4, by = 0.2)) +
     scale_colour_manual('Stream segment class', values = pal_exp(levels(toplo1$`Stream Class`)), drop = F) +
-    geom_point(aes(x = CSCI, fill = `Stream Class`, shape = `Relative\nscore`), size = 3.5, alpha = 0.8) +
+    geom_point(aes(x = CSCI, fill = `Stream Class`, shape = `Relative\nscore`), size = 4.5, alpha = 0.8) +
     geom_vline(xintercept = 0.79, linetype = 'dashed', size = 1) +
     scale_shape_manual('Relative site score', values = c(25, 21, 24), drop = FALSE) +
     scale_fill_manual(values = pal_exp(levels(toplo1$`Stream Class`)), na.value = 'yellow', guide = F, drop = F) +
