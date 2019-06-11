@@ -699,25 +699,9 @@ output$plodstipi <- renderPlot({
 output$dltab <- downloadHandler(
   filename = function() {'sqidata.csv'},
   content = function(file) {
-    
-    # reaname some columns, remove others, add lat/lon, remove geometry
-    todl <- sitedat() %>% 
-      rename(
-        SQI = StreamHealthIndex, 
-        biological_condition = BiologicalCondition,
-        stress_condition = OverallStressCondition_detail,
-        pOverall = pChemHab, 
-        County = cnty, 
-        SMC_region = SMC_Name,
-        Regional_board = RBNAME,
-        Constraint_class = strcls
-      ) %>% 
-      dplyr::select(-WaterChemistryCondition, -HabitatCondition, -OverallStressCondition) %>% 
-      mutate(
-        lon = st_coordinates(.)[, 1], 
-        lat = st_coordinates(.)[, 2]
-      ) %>% 
-      st_set_geometry(NULL)
+
+    # format output
+    todl <- formdl_fun(sitedat())
     
     write.csv(todl, file, quote = T, row.names = F)
     

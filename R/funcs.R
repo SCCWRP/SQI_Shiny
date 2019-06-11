@@ -269,4 +269,58 @@ expplo_fun <- function(cats){
   
 }
   
+#' Format data for download
+#'
+#' @param dat all data filtered by spatial selections
+#'
+#' @return
+#' @export
+#'
+#' @examples
+formdl_fun <- function(dat){
   
+  browser()
+  # rename columns, remove some columns, remove sf class but retain lat, lon
+  # get ecdf ests for all observed data
+  out <- dat %>% 
+    rename(
+      SQI = StreamHealthIndex, 
+      biological_condition = BiologicalCondition,
+      stress_condition = OverallStressCondition_detail,
+      pOverall = pChemHab, 
+      County = cnty, 
+      SMC_region = SMC_Name,
+      Regional_board = RBNAME,
+      Constraint_class = strcls, 
+      CRAM = indexscore_cram
+    ) %>% 
+    dplyr::select(-CSCI_rc, -ASCI_rc, -Bio_BPJ, -bio_fp, -SiteSet, -WaterChemistryCondition, -HabitatCondition, -OverallStressCondition, -lower, -meds, -upper) %>% 
+    dplyr::mutate(
+      lon = st_coordinates(.)[, 1], 
+      lat = st_coordinates(.)[, 2]
+    ) %>% 
+    st_set_geometry(NULL) 
+  
+  # ecdf ests
+  ecdf_tojn <- out %>% 
+    tidyr::gather('var', 'val', ASCI, blc, bs, Cond, CSCI, Ev_FlowHab, H_AqHab, H_SubNat, hy, CRAM, IPI, PCT_SAFN, ps, TN, TP, XCMG) %>% 
+    dplyr::group_by(var) %>% 
+    dplyr::select(MasterID, yr, var, val) %>% 
+    dplyr::mutate(
+      val = ecdf(val)(val),
+      varptile = paste0(var, '_ptile')
+      ) %>% 
+    dplyr::ungroup() %>% 
+    dplyr::select(-var) %>% 
+    tidyr::spread(varptile, val)
+  
+  # sanity check
+  stopifnot(nrow(ecdf_tojn) == nrow(dat))
+  
+  # join ecdf with out
+  out <- out %>%
+    full_join(ecdf_tojn, by = c('MasterID', 'yr'))
+  
+  return(out)
+  
+}  
