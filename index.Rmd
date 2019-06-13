@@ -512,7 +512,7 @@ output$expplo <- renderPlot({
   req(!is.na(cats()))
   
   validate(
-    need(!is.na(cats()$strcls), 'No data')
+    need(!is.na(cats()$strcls), 'No landscape model data')
   )
   
   expplo()
@@ -842,7 +842,7 @@ The stress condition at a site is based on a modelled probability of biology bei
 knitr::include_graphics("www/strpr_ex.PNG")
 ```
 
-Finally, the expected lower and upper CSCI score for a site (if available) is shown to provide context for the observed CSCI score.  These limits are based on a landscape model that predicts the ranges of CSCI scores that are likely possible relative to the landscape development in the watershed for a stream reach. This provides information on whether a site is under scoring, over scoring, or scoring as expected relative to the landscape model predictions and can provide a basis for prioritization.  Please visit the [SCAPE](https://sccwrp.shinyapps.io/scape/) application for additional details.   
+Finally, the expected lower and upper CSCI score for a site (if available) is shown to provide context for the observed CSCI score.  These limits are based on a landscape model that predicts the ranges of CSCI scores that are likely possible relative to the landscape development in the watershed for a stream reach. This provides information on whether a site is under scoring, over scoring, or scoring as expected relative to the landscape model predictions and can provide a basis for prioritization.  Please visit the [SCAPE](https://sccwrp.shinyapps.io/scape/) application for additional details. Note that this information is currently unavailable for the ASCI.  
 
 ```{r, out.width = "75%", fig.align = 'center'}
 knitr::include_graphics("www/scape_ex.PNG")
