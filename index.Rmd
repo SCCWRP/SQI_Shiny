@@ -838,7 +838,7 @@ Biological and stressor components that are used to create the overall SQI score
 knitr::include_graphics("www/sqi_bio.PNG")
 ```
 
-The stress condition for a site is assigned to one of five categores.
+The stress condition for a site is assigned to one of five categories.
 
 ```{r, out.width = "80%", fig.align = 'center'}
 knitr::include_graphics("www/sqi_strdet.PNG")
@@ -881,6 +881,10 @@ In general, higher CSCI and ASCI scores indicate more intact biological communit
 The **Relative details** tab repeats information on the **Details** tab for the selected site, with the addition of a relative context for the observed data.  The observed values are shown relative to the distribution of values across all sites on the map.  This information can be used to help characterize which components of the SQI are potentially driving the site scores.  
 
 The spatial filters on the top left determine how the relative values are calculated.  For example, selecting only one watershed will plot the observed values for the selected site against all other values for that watershed.  This information can help place the observed values for the selected site in a more spatially relevant context, as compared to looking at relative values for the entire region.  Sites can be filtered by SMC watersheds, counties, Water Board regional boundaries, stream constraint classes (see [SCAPE](https://sccwrp.shinyapps.io/SCAPE)), or sample year.
+
+#### Glossary
+
+The **Glossary** tab defines the terms and acronyms used by the SQI. This also includes column names for the spreadsheet that can be downloaded above.
 
 #### Attribution
 
@@ -1102,7 +1106,7 @@ Riparian veg. cover, `XCMG`: One of five IPI metrics, measures the amount of veg
 
 `pHab`: The likelihood of biological alteration at a site based on physical habitat, continuous from 0 to 1.
 
-`pOverall`: The likelihood of biological alteration at a site based on both water chemisry and physical habitat stressors, continuous from 0 to 1.
+`pOverall`: The likelihood of biological alteration at a site based on both water chemistry and physical habitat stressors, continuous from 0 to 1.
 
 `SQI`: The overall SQI condition at a site, one of four categories.
 
