@@ -760,9 +760,17 @@ column(width = 12,
     renderText({
       
       txt <- 'Selected site: '
-      
-      if(nrow(cats()) > 0)
-        txt <- paste0(txt, selsit, ' (Year ', cats()$yr, ', COMID ', cats()$COMID, ')')
+
+      if(nrow(cats()) > 0){
+        
+        # get lat lon       
+        crds <- cats()$geometry
+        crds <- round(crds[[1]][c(1, 2)], 4)
+        
+        # append all to text output
+        txt <- paste0(txt, selsit, ' (Year ', cats()$yr, ', COMID ', cats()$COMID, ', ', crds[1], 'W/', crds[2], 'N)')
+        
+      }
       
       return(txt)
       
@@ -1031,3 +1039,74 @@ plotOutput('plodstcrm') %>% withSpinner()
 renderText({paste0('Total score: ', cats()$IPI)})
 plotOutput('plodstipi') %>% withSpinner()
 ```
+
+Glossary
+===================================== 
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Glossary of terms
+
+Below is a glossary of terms used in the SQI.  Please see the overview tab for a general description of the foundation and main components of the SQI. Terms with a label `like this` describe column names in the spreadsheet that can be downloaded from the overview tab.  Note that variables in the downloaded data with the `_ptile` suffix indicate the percentile value of the variable at a site relative to all other sites in the file.
+
+#### Biology
+
+CSCI, `CSCI`: California Stream Condition Index, quantifies biological condition based on aquatic insects and other invertebrates.
+
+ASCI, `ASCI`: Algal Stream Condition Index, quantifies biological condition based on algae, such as diatoms and soft-bodied algae.
+
+#### Chemistry
+
+Specific conductivity, `Cond`: The conductivity (uS/cm) from a water sample at a site. Measures the concentration of salts as an indicator of water quality degradation.
+
+Total nitrogen, `TN`: The concentration (mg/L) of total nitrogen from a water sample at a site.  Measures the concentration of nutrients that could cause eutrophic conditions.
+
+Total phosphorus, `TP`: The concentration (mg/L) of total phosphorus from a water sample at a site.  Measures the concentration of nutrients that could cause eutrophic conditions.
+
+#### Physical habitat
+
+CRAM: California Rapid Assessment Method, evaluates stress within the riparian zone, adjacent floodplain, and other stream corridors.  Includes four metrics.
+
+Buffer and landscape, `blc`: One of four CRAM metrics, describes the buffer and landscape condition at a site.
+
+Biotic structure, `bs`: One of four CRAM metrics, describes condition of the biotic structure at a site.
+
+Physical structure, `ps`: One of four CRAM metrics, describes condition of the physical structure at a site.
+
+Hydrologic structure, `hys`: One of four CRAM metrics, describes the hydrologic structure at a site.
+
+IPI: Index of Physical Integrity, evaluates physical stress in the stream channel based on the streambed substrate and diversity of micro-habitats.  Includes five metrics, which are often collectively called PHAB (physical habitat) metrics. 
+
+% sands and fines, `PCT_SAFN`: One of five IPI metrics, measures the amount of small-grained sediment particles (i.e., < 2 mm) that have accumulated in the stream bottom as a result of deposition.  Also includes concrete. Higher scores indicate higher physical integrity (i.e., lower percent sands and fines).
+
+Diversity of habitat, `H_AqHab`: One of five IPI metrics, measures the relative quantity and variety of natural structures in the stream, such as cobble, large and small boulders, fallen trees, logs and branches, and undercut banks available as refugia, or as sites for feeding or spawning and nursery functions of aquatic macrofauna.
+
+Diversity of substrate, `H_SubNat`: One of five IPI metrics, measures the diversity of natural substrate types, assessing how well multiple size classes (e.g., gravel, cobble and boulder particles) are represented.
+
+Evenness of habitat, `Ev_FlowHab`: One of five IPI metrics, measures the evenness of riffles, pools, and other flow microhabitat types.
+
+Riparian veg. cover, `XCMG`: One of five IPI metrics, measures the amount of vegetative protection afforded to the stream bank and the near-stream portion of the riparian zone.
+
+#### Other
+
+`biological_condition`: The biological condition category at a site assigned by the SQI, one of four categories.
+
+`COMID`: The stream COMID number where a site is located.  The COMID is a standard identifier for stream segments in the National Hydrography Dataset. 
+
+`Constraint_class`: The biological constraint class for the stream segment where a site is located.  This describes whether a site is likely/possibly constrained/unconstrained for the CSCI based on landscape development in the watershed.  
+
+`lon`, `lat`: Longitude and latitude of a site, in decimal degrees.
+
+`pChem`: The likelihood of biological alteration at a site based on water chemistry, continuous from 0 to 1.
+
+`pHab`: The likelihood of biological alteration at a site based on physical habitat, continuous from 0 to 1.
+
+`pOverall`: The likelihood of biological alteration at a site based on both water chemisry and physical habitat stressors, continuous from 0 to 1.
+
+`SQI`: The overall SQI condition at a site, one of four categories.
+
+`stress_condition`: The stress condition category at a site assigned by the SQI, one of five categories.
+
+`yr`: The year in which sampling occurred for all indicators used in the SQI assessment at a site.
+
