@@ -1052,65 +1052,56 @@ Column {data-width=500}
 
 ### Glossary of terms
 
-Below is a glossary of terms used in the SQI.  Please see the overview tab for a general description of the foundation and main components of the SQI. Terms with a label `like this` describe column names in the spreadsheet that can be downloaded from the overview tab.  Note that variables in the downloaded data with the `_ptile` suffix indicate the percentile value of the variable at a site relative to all other sites in the file.
+Below is a glossary of terms used in the SQI.  Please see the overview tab for a general description of the foundation and main components of the SQI. Labels `like this` describe column names in the spreadsheet that can be downloaded from the overview tab.  Note that variables in the downloaded data with the `_ptile` suffix indicate the percentile value of the variable at a site relative to all other sites in the file.
 
-#### Biology
+__% sands and fines__, `PCT_SAFN`: One of five IPI metrics, measures the amount of small-grained sediment particles (i.e., < 2 mm) that have accumulated in the stream bottom as a result of deposition.  Also includes concrete. Scores closer to zero indicate more degraded conditions and scores closer to 1 indicate more natural conditions (i.e., lower percent sands and fines).
 
-CSCI, `CSCI`: California Stream Condition Index, quantifies biological condition based on aquatic insects and other invertebrates.
+__ASCI__, `ASCI`: Algal Stream Condition Index, quantifies biological condition based on algae, such as diatoms and soft-bodied algae.  Scores close to 1 indicate a natural balance of organisms comparable to reference conditions.
 
-ASCI, `ASCI`: Algal Stream Condition Index, quantifies biological condition based on algae, such as diatoms and soft-bodied algae.
+__Biological condition category__, `biological_condition`: The biological condition category at a site assigned by the SQI, one of four categories.
 
-#### Chemistry
+__Biotic structure__, `bs`: One of four CRAM attributes. It describes the structural complexity and diversity of riparian vegetation within an assessment area. Scores range from 25 to 100 and higher scores indicate better condition.
 
-Specific conductivity, `Cond`: The conductivity (uS/cm) from a water sample at a site. Measures the concentration of salts as an indicator of water quality degradation.
+__Buffer and landscape__, `blc`: One of four CRAM attributes. It describes the level of disturbance in the watershed or buffer, and connectivity along the stream corridor. Scores range from 25 to 100 and higher scores indicate better condition.
 
-Total nitrogen, `TN`: The concentration (mg/L) of total nitrogen from a water sample at a site.  Measures the concentration of nutrients that could cause eutrophic conditions.
+__COMID__, `COMID`: The stream COMID number where a site is located.  The COMID is a standard identifier for stream segments in the National Hydrography Dataset (medium resolution NHD-Plus). 
 
-Total phosphorus, `TP`: The concentration (mg/L) of total phosphorus from a water sample at a site.  Measures the concentration of nutrients that could cause eutrophic conditions.
+__Constraint class__: `Constraint_class`: The biological constraint class for the stream segment where a site is located.  This describes whether a site is likely/possibly constrained/unconstrained for the CSCI based on landscape development in the watershed (see the [SCAPE](https://sccwrp.shinyapps.io/SCAPE) website for more information).  
 
-#### Physical habitat
+__CRAM__, `CRAM`: The California Rapid Assessment Method is a tool to assesses the condition of riparian wetlands in terms of four attributes (buffer and landscape condition, hydrological structure, physical structure, and biotic structure). CRAM scores range from 25 to 100 and higher scores indicate better condition (i.e., a higher level of wetland function).
 
-CRAM: California Rapid Assessment Method, evaluates stress within the riparian zone, adjacent floodplain, and other stream corridors.  Includes four metrics.
+__CSCI__, `CSCI`: California Stream Condition Index, quantifies biological condition based on aquatic insects and other invertebrates. Scores close to 1 indicate a natural balance of organisms comparable to reference conditions.
 
-Buffer and landscape, `blc`: One of four CRAM metrics, describes the buffer and landscape condition at a site.
+__Diversity of habitat__, `H_AqHab`: One of five IPI metrics, measures the relative quantity and variety of natural structures in the stream, such as cobble, large and small boulders, fallen trees, logs and branches, and undercut banks available as refugia, or as sites for feeding or spawning and nursery functions of aquatic macrofauna. Scores closer to zero indicate more degraded conditions and scores closer to 1 indicate more natural conditions.
 
-Biotic structure, `bs`: One of four CRAM metrics, describes condition of the biotic structure at a site.
+__Diversity of substrate__, `H_SubNat`: One of five IPI metrics, measures the diversity of natural substrate types, assessing how well multiple size classes (e.g., gravel, cobble and boulder particles) are represented. Scores closer to zero indicate more degraded conditions and scores closer to 1 indicate more natural conditions.
 
-Physical structure, `ps`: One of four CRAM metrics, describes condition of the physical structure at a site.
+__Evenness of habitat__, `Ev_FlowHab`: One of five IPI metrics, measures the evenness of riffles, pools, and other flow microhabitat types. Scores closer to zero indicate more degraded conditions and scores closer to 1 indicate more natural conditions.
 
-Hydrologic structure, `hys`: One of four CRAM metrics, describes the hydrologic structure at a site.
+__Hydrologic structure__, `hys`: One of four CRAM attributes. It describes the extent to which the movement of water and sediments follow a natural regime, based on water sources, hydromodification, and channel stability. Scores range from 25 to 100 and higher scores indicate better condition.
 
-IPI: Index of Physical Integrity, evaluates physical stress in the stream channel based on the streambed substrate and diversity of micro-habitats.  Includes five metrics, which are often collectively called PHAB (physical habitat) metrics. 
+__IPI__, `IPI`: Index of Physical Integrity, evaluates physical stress in the stream channel based on the streambed substrate and diversity of micro-habitats. Scores closer to zero indicate more degraded conditions and scores closer to 1 indicate more natural conditions. Includes five metrics, which are often collectively called PHAB (physical habitat) metrics. 
 
-% sands and fines, `PCT_SAFN`: One of five IPI metrics, measures the amount of small-grained sediment particles (i.e., < 2 mm) that have accumulated in the stream bottom as a result of deposition.  Also includes concrete. Higher scores indicate higher physical integrity (i.e., lower percent sands and fines).
+__Longitude__, __latitude__, `lon`, `lat`: Longitude and latitude of a site, in decimal degrees.
 
-Diversity of habitat, `H_AqHab`: One of five IPI metrics, measures the relative quantity and variety of natural structures in the stream, such as cobble, large and small boulders, fallen trees, logs and branches, and undercut banks available as refugia, or as sites for feeding or spawning and nursery functions of aquatic macrofauna.
+__pChem__, `pChem`: The likelihood of biological alteration at a site based on water chemistry, continuous from 0 to 1.
 
-Diversity of substrate, `H_SubNat`: One of five IPI metrics, measures the diversity of natural substrate types, assessing how well multiple size classes (e.g., gravel, cobble and boulder particles) are represented.
+__pHab__, `pHab`: The likelihood of biological alteration at a site based on physical habitat, continuous from 0 to 1.  This is not to be confused with PHAB metrics that describe physical habitat.
 
-Evenness of habitat, `Ev_FlowHab`: One of five IPI metrics, measures the evenness of riffles, pools, and other flow microhabitat types.
+__Physical structure__, `ps`: One of four CRAM attributes. It describes the diversity of habitat features, such as floodplain swales, woody jams, riffles, and other structural features that support wildlife. Scores range from 25 to 100 and higher scores indicate better condition.
 
-Riparian veg. cover, `XCMG`: One of five IPI metrics, measures the amount of vegetative protection afforded to the stream bank and the near-stream portion of the riparian zone.
+__pOverall__, `pOverall`: The likelihood of biological alteration at a site based on both water chemistry and physical habitat stressors, continuous from 0 to 1.
 
-#### Other
+__Riparian veg. cover__, `XCMG`: One of five IPI metrics, measures the amount of vegetative protection afforded to the stream bank and the near-stream portion of the riparian zone. Scores closer to zero indicate more degraded conditions and scores closer to 1 indicate more natural conditions.
 
-`biological_condition`: The biological condition category at a site assigned by the SQI, one of four categories.
+__Specific conductivity__, `Cond`: The conductivity (uS/cm) from a water sample at a site. Measures the ionic balance of salts as an indicator of water quality degradation under baseflow conditions.
 
-`COMID`: The stream COMID number where a site is located.  The COMID is a standard identifier for stream segments in the National Hydrography Dataset. 
+__SQI__, `SQI`: The overall SQI condition at a site, one of four categories.
 
-`Constraint_class`: The biological constraint class for the stream segment where a site is located.  This describes whether a site is likely/possibly constrained/unconstrained for the CSCI based on landscape development in the watershed.  
+__Stress condition__, `stress_condition`: The stress condition category at a site assigned by the SQI, one of five categories.
 
-`lon`, `lat`: Longitude and latitude of a site, in decimal degrees.
+__Total nitrogen__, `TN`: The concentration (mg/L) of total nitrogen from a water sample at a site at baseflow conditions.  High concentrations of nutrients like TN are associated with eutrophic conditions.
 
-`pChem`: The likelihood of biological alteration at a site based on water chemistry, continuous from 0 to 1.
+__Total phosphorus__, `TP`: The concentration (mg/L) of total phosphorus from a water sample at a site at baseflow conditions. High concentrations of nutrients like TP are associated with eutrophic conditions.
 
-`pHab`: The likelihood of biological alteration at a site based on physical habitat, continuous from 0 to 1.
-
-`pOverall`: The likelihood of biological alteration at a site based on both water chemistry and physical habitat stressors, continuous from 0 to 1.
-
-`SQI`: The overall SQI condition at a site, one of four categories.
-
-`stress_condition`: The stress condition category at a site assigned by the SQI, one of five categories.
-
-`yr`: The year in which sampling occurred for all indicators used in the SQI assessment at a site.
-
+__Year__, `yr`: The year in which sampling occurred for all indicators used in the SQI assessment at a site.
