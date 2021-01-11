@@ -43,11 +43,138 @@ downloadButtonRmd <- function (outputId, label = "Download", class = NULL, ...) 
 
 # source functions and data
 source(here('R', 'funcs.R'))
-data(sqidat)
+# data(sqidat) # calls static dataset of past build
 data(sheds)
 data(cntys)
 data(rwqbs)
 data(cnstr)
+data(wqglm2021)
+data(habglm2021)
+
+# link to SQL query from SMC database
+sqisql <- read_csv("https://smcchecker.sccwrp.org/smc/sqi_rawdata") %>% 
+  
+  # group by and retain ID columns
+  group_by(masterid, yr, cnty, watershed, regional_board, latitude, longitude, comid) %>% 
+  
+  # calculate the means of all indices measured multiple times
+  summarise(across(d_asci:ps, mean, na.rm= TRUE)) %>% 
+  
+  # ALWAYS ungroup after grouping
+  ungroup()
+  
+# need to add remaining necessary columns using the live-queried dataset
+sqidat <- sqisql %>%
+  
+  # add CSCI classification column
+  mutate(CSCI_rc = cut(csci, breaks = c(-Inf, 0.63, 0.79, 0.92, Inf), 
+    labels = c('vla', 'la', 'pa', 'li')), 
+    CSCI_rc = as.character(CSCI_rc)) %>%
+  
+  # add ASCI classification column
+  mutate(ASCI_rc = cut(d_asci, breaks = c(-Inf, 0.70, 0.83, 0.93, Inf), 
+    labels = c('vla', 'la', 'pa', 'li')),
+    ASCI_rc = as.character(ASCI_rc)) %>%
+  
+  # add BPJ score column (based on Beck et al., 2019, Table 1)
+  mutate(Bio_BPJ = case_when(d_asci >= 0.93 & csci >= 0.92 ~ 5,
+    d_asci >= 0.93 & csci >= 0.79 & csci < 0.92 ~ 3,
+    d_asci >= 0.93 & csci >= 0.63 & csci < 0.79 ~ -1,
+    d_asci >= 0.93 & csci < 0.63 ~ -2,
+    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.92 ~ 3,
+    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.79 & csci < 0.92 ~ 2,
+    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.63 & csci < 0.79 ~ -2,
+    d_asci >= 0.83 & d_asci < 0.93 & csci < 0.63 ~ -4,
+    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.92 ~ -1,
+    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.79 & csci < 0.92 ~ -2,
+    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.63 & csci < 0.79 ~ -3,
+    d_asci >= 0.70 & d_asci < 0.83 & csci < 0.63 ~ -5,
+    d_asci < 0.70 & csci >= 0.92 ~ -2,
+    d_asci < 0.70 & csci >= 0.79 & csci < 0.92 ~ -4,
+    d_asci < 0.70 & csci >= 0.63 & csci < 0.79 ~ -5,
+    d_asci < 0.70 & csci < 0.63 ~ -6)) %>%
+  
+  # add additional bio score column.
+  mutate(bio_fp = ifelse(Bio_BPJ < 0, 1, 0)) %>%
+  
+  # predict pChem and pHab using new glms
+  mutate(pChem = predict(wqglm, newdata = sqisql, type = "response"),
+     pHab = predict(habglm, newdata = sqisql, type = "response")) %>%
+  
+  # add pChemHab score column
+  mutate(pChemHab = 1 - ( (1-pChem) * (1-pHab))) %>%
+  
+  # add Biological condition column
+  mutate(BiologicalCondition = case_when(
+    CSCI_rc == "li" | CSCI_rc == "pa" &
+      ASCI_rc == "li" | ASCI_rc == "pa" ~ "Healthy",
+    CSCI_rc == "la" | CSCI_rc == "vla" &
+      ASCI_rc == "li" | ASCI_rc == "pa" ~ "Impacted for CSCI", 
+    CSCI_rc == "li" | CSCI_rc == "pa" &
+      ASCI_rc == "la" | ASCI_rc == "vla" ~ "Impacted for ASCI", 
+    CSCI_rc == "la" | CSCI_rc == "vla" &
+      ASCI_rc == "la" | ASCI_rc == "vla" ~ "Impacted for both")) %>%
+  
+  # add Water Chemistry condition column
+  mutate(WaterChemistryCondition = case_when(pChem < 0.1 ~ "Low",
+    pChem >= 0.1 & pChem < 0.9 ~ "Moderate",
+    pChem >= 0.9 ~ "Severe")) %>%
+  
+  # add Habitat condition column
+  mutate(HabitatCondition = case_when(pHab < 0.1 ~ "Low",
+    pHab >= 0.1 & pHab < 0.9 ~ "Moderate",
+    pHab >= 0.9 ~ "Severe")) %>%
+  
+  # add Overall stress condition column
+  mutate(OverallStressCondition = case_when(pChemHab < 0.1 ~ "Low",
+    pChemHab >= 0.1 & pChemHab < 0.9 ~ "Moderate",
+    pChemHab >= 0.9 ~ "Severe")) %>%
+  
+  # add Overall stress detail column
+  mutate(OverallStressCondition_detail = case_when(
+    WaterChemistryCondition == "Low" | WaterChemistryCondition == "Moderate" & 
+      HabitatCondition == "Low" | HabitatCondition == "Moderate" &
+      OverallStressCondition == "Low" | OverallStressCondition == "Moderate" ~ "Low Stress",
+    WaterChemistryCondition == "Severe" ~ "Stressed by Chemistry", 
+    HabitatCondition == "Severe" ~ "Stressed by Habitat", 
+    WaterChemistryCondition == "Severe" &
+      HabitatCondition == "Severe" ~ "Stressed by Chemistry and Habitat", 
+    WaterChemistryCondition == "Low" | WaterChemistryCondition == "Moderate" & 
+      HabitatCondition == "Low" | HabitatCondition == "Moderate" &
+      OverallStressCondition == "Severe" ~ "Stressed by Low Levels")) %>%
+  
+  # add Stream Health Index column (based on table in SQI Shiny application & Beck et al., 2019, Section 2.4)
+  mutate(StreamHealthIndex = case_when(BiologicalCondition == "Healthy" & 
+      OverallStressCondition == "Low" ~ "Healthy and unstressed",
+    BiologicalCondition == "Healthy" & 
+      OverallStressCondition != "Low" ~ "Healthy and resilient",
+    BiologicalCondition != "Healthy" & 
+      OverallStressCondition == "Low" ~ "Impacted by unknown stress",
+    BiologicalCondition != "Healthy" & 
+      OverallStressCondition != "Low" ~ "Impacted and stressed")) %>%
+  
+  # convert longitude and latitude to sf geometries
+  st_as_sf(coords = c('longitude', 'latitude'), crs = 4326) %>%
+  
+  # rename column names to agree with remaining scripts/code
+  rename(MasterID = masterid,
+    SMC_Name = watershed,
+    RBNAME = regional_board,
+    ASCI = d_asci,
+    CSCI = csci,
+    IPI = ipi,
+    XCMG = xcmg,
+    PCT_SAFN = pct_safn,
+    Ev_FlowHab = ev_flowhab,
+    H_AqHab = h_aqhab,
+    H_SubNat = h_subnat,
+    TN = tn,
+    TP = tp,
+    Cond = conductivity,
+    COMID = comid) %>%
+  
+  # combine with "constraints" data with SCAPE-modeled CSCI scores
+  left_join(cnstr %>% st_set_geometry(NULL), by = "COMID")
 
 # numeric variable names
 numnms <- c('CSCI', 'ASCI', 'TN', 'TP', 'Cond', 'indexscore_cram', 'IPI', 'blc', 'bs', 'ps', 'hy', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
@@ -896,7 +1023,7 @@ The **Glossary** tab defines the terms and acronyms used by the SQI. This also i
 
 #### Attribution
 
-This work is licensed under the Creative Commons [CC0](https://tldrlegal.com/license/creative-commons-cc0-1.0-universal). These are preliminary results, and are subject to change. For questions, contact [Marcus Beck](mailto:marcusb@sccwrp.org) or [Ken Schiff](mailto:kens@sccwrp.org).  Please visit [here](https://github.com/SCCWRP/SQI_Shiny) to view the web page source content. 
+This work is licensed under the Creative Commons [CC0](https://tldrlegal.com/license/creative-commons-cc0-1.0-universal). These are preliminary results, and are subject to change. For questions, contact [Raphael Mazor](mailto:raphaelm@sccwrp.org) or [Ken Schiff](mailto:kens@sccwrp.org).  Please visit [here](https://github.com/SCCWRP/SQI_Shiny) to view the web page source content. 
 
 [![DOI](https://zenodo.org/badge/154088415.svg)](https://zenodo.org/badge/latestdoi/154088415)
 
