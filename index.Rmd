@@ -25,7 +25,9 @@ library(patchwork)
 library(flexdashboard)
 library(SQI)
 library(mapview)
+# Note: this site was built under mapview v 2.7.8. To revert to this version run "devtools::install_version('mapview', '2.7.8')" in the console.
 library(leaflet)
+library(leafem)
 library(sf)
 library(shinyWidgets)
 library(here)
@@ -450,8 +452,8 @@ observeEvent(input$map_marker_click, {
       layerId = ~MasterID,
       stroke = TRUE,
       color = 'black',
-      fillColor = selsitplocol,
       fill = TRUE,
+      fillColor = selsitplocol,
       radius=10, 
       weight = 6,
       fillOpacity = 1,
