@@ -1,5 +1,5 @@
 # SQI model recalibration script
-# January 5, 2021
+# January 11, 2021
 # Heili Lowman
 
 # All of the below code has been taken from Marcus' original script found here: https://github.com/SCCWRP/SQI_Doc/blob/master/R/dat_proc.R
@@ -13,10 +13,8 @@ library(randomForest)
 
 # Load in dataset created by SQL query on January 11, 2021.
 # This dataset will be considered "static" and only run once for model creation.
+# Note, the below code uses the SQL column names; the shiny app will rename them in its code
 sqidat <- read_csv("https://smcchecker.sccwrp.org/smc/sqi_rawdata") %>% 
-  
-  # rename conductivity column for consistency
-  rename(Cond = conductivity) %>%
   
   # group by and retain ID columns
   group_by(masterid, yr, cnty, watershed, regional_board, latitude, longitude, comid) %>% 
@@ -90,7 +88,7 @@ valdat <- sqidat %>%
 # 'logit' makes it logistic regression
 
 # pChem
-wqglm <- glm(bio_fp ~ log10(0.1 + tn) + log10(0.01 + tp) + Cond,
+wqglm <- glm(bio_fp ~ log10(0.1 + tn) + log10(0.01 + tp) + conductivity,
   family = binomial('logit'), data = caldat)
 
 # pHab
@@ -100,12 +98,5 @@ habglm <- glm(bio_fp ~ hy + pct_safn + xcmg,
 # save to project 
 save(wqglm, file = 'data/wqglm2021.RData', compress = 'xz')
 save(habglm, file = 'data/habglm2021.RData', compress = 'xz')
-
-# get SQI model results from combined data ----------------------------------
-# add the below script to the shiny app.
-# add predicted pChem and pHab values to sqidat
-# sqidat2 <- sqidat %>%
-#   mutate(pChem = predict(wqglm, newdata = sqidat, type = "response"),
-#     pHab = predict(habglm, newdata = sqidat, type = "response"))
 
 # End of script.
