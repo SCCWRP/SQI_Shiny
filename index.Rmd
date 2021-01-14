@@ -72,32 +72,34 @@ sqidat <- sqisql %>%
     CSCI_rc = as.character(CSCI_rc)) %>%
   
   # add ASCI classification column
-  mutate(ASCI_rc = cut(d_asci, breaks = c(-Inf, 0.70, 0.83, 0.93, Inf), 
+  mutate(ASCI_rc = cut(d_asci, breaks = c(-Inf, 0.75, 0.86, 0.94, Inf), 
     labels = c('vla', 'la', 'pa', 'li')),
     ASCI_rc = as.character(ASCI_rc)) %>%
   
   # add BPJ score column (based on Beck et al., 2019, Table 1)
-  mutate(Bio_BPJ = case_when(d_asci >= 0.93 & csci >= 0.92 ~ 5,
-    d_asci >= 0.93 & csci >= 0.79 & csci < 0.92 ~ 3,
-    d_asci >= 0.93 & csci >= 0.63 & csci < 0.79 ~ -1,
-    d_asci >= 0.93 & csci < 0.63 ~ -2,
-    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.92 ~ 3,
-    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.79 & csci < 0.92 ~ 2,
-    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.63 & csci < 0.79 ~ -2,
-    d_asci >= 0.83 & d_asci < 0.93 & csci < 0.63 ~ -4,
-    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.92 ~ -1,
-    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.79 & csci < 0.92 ~ -2,
-    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.63 & csci < 0.79 ~ -3,
-    d_asci >= 0.70 & d_asci < 0.83 & csci < 0.63 ~ -5,
-    d_asci < 0.70 & csci >= 0.92 ~ -2,
-    d_asci < 0.70 & csci >= 0.79 & csci < 0.92 ~ -4,
-    d_asci < 0.70 & csci >= 0.63 & csci < 0.79 ~ -5,
-    d_asci < 0.70 & csci < 0.63 ~ -6)) %>%
+  mutate(Bio_BPJ = case_when(d_asci >= 0.94 & csci >= 0.92 ~ 5,
+    d_asci >= 0.94 & csci >= 0.79 & csci < 0.92 ~ 3,
+    d_asci >= 0.94 & csci >= 0.63 & csci < 0.79 ~ -1,
+    d_asci >= 0.94 & csci < 0.63 ~ -2,
+    d_asci >= 0.86 & d_asci < 0.94 & csci >= 0.92 ~ 3,
+    d_asci >= 0.86 & d_asci < 0.94 & csci >= 0.79 & csci < 0.92 ~ 2,
+    d_asci >= 0.86 & d_asci < 0.94 & csci >= 0.63 & csci < 0.79 ~ -2,
+    d_asci >= 0.86 & d_asci < 0.94 & csci < 0.63 ~ -4,
+    d_asci >= 0.75 & d_asci < 0.86 & csci >= 0.92 ~ -1,
+    d_asci >= 0.75 & d_asci < 0.86 & csci >= 0.79 & csci < 0.92 ~ -2,
+    d_asci >= 0.75 & d_asci < 0.86 & csci >= 0.63 & csci < 0.79 ~ -3,
+    d_asci >= 0.75 & d_asci < 0.86 & csci < 0.63 ~ -5,
+    d_asci < 0.75 & csci >= 0.92 ~ -2,
+    d_asci < 0.75 & csci >= 0.79 & csci < 0.92 ~ -4,
+    d_asci < 0.75 & csci >= 0.63 & csci < 0.79 ~ -5,
+    d_asci < 0.75 & csci < 0.63 ~ -6)) %>%
   
   # add additional bio score column.
   mutate(bio_fp = ifelse(Bio_BPJ < 0, 1, 0)) %>%
   
   # predict pChem and pHab using new glms
+  # these models are found in R/model_updated.R
+  # models were recalibrated in January 2021
   mutate(pChem = predict(wqglm, newdata = sqisql, type = "response"),
      pHab = predict(habglm, newdata = sqisql, type = "response")) %>%
   
@@ -113,7 +115,7 @@ sqidat <- sqisql %>%
     CSCI_rc == "li" | CSCI_rc == "pa" &
       ASCI_rc == "la" | ASCI_rc == "vla" ~ "Impacted for ASCI", 
     CSCI_rc == "la" | CSCI_rc == "vla" &
-      ASCI_rc == "la" | ASCI_rc == "vla" ~ "Impacted for both")) %>%
+      ASCI_rc == "la" | ASCI_rc == "vla" ~ "Impacted for CSCI and ASCI")) %>%
   
   # add Water Chemistry condition column
   mutate(WaterChemistryCondition = case_when(pChem < 0.1 ~ "Low",
@@ -134,14 +136,14 @@ sqidat <- sqisql %>%
   mutate(OverallStressCondition_detail = case_when(
     WaterChemistryCondition == "Low" | WaterChemistryCondition == "Moderate" & 
       HabitatCondition == "Low" | HabitatCondition == "Moderate" &
-      OverallStressCondition == "Low" | OverallStressCondition == "Moderate" ~ "Low Stress",
-    WaterChemistryCondition == "Severe" ~ "Stressed by Chemistry", 
-    HabitatCondition == "Severe" ~ "Stressed by Habitat", 
+      OverallStressCondition == "Low" | OverallStressCondition == "Moderate" ~ "Low stress",
+    WaterChemistryCondition == "Severe" ~ "Stressed by chemistry degradation", 
+    HabitatCondition == "Severe" ~ "Stressed by habitat degradation", 
     WaterChemistryCondition == "Severe" &
-      HabitatCondition == "Severe" ~ "Stressed by Chemistry and Habitat", 
+      HabitatCondition == "Severe" ~ "Stressed by chemistry and habitat degradation", 
     WaterChemistryCondition == "Low" | WaterChemistryCondition == "Moderate" & 
       HabitatCondition == "Low" | HabitatCondition == "Moderate" &
-      OverallStressCondition == "Severe" ~ "Stressed by Low Levels")) %>%
+      OverallStressCondition == "Severe" ~ "Stressed by low levels of chemistry or habitat degradation")) %>%
   
   # add Stream Health Index column (based on table in SQI Shiny application & Beck et al., 2019, Section 2.4)
   mutate(StreamHealthIndex = case_when(BiologicalCondition == "Healthy" & 

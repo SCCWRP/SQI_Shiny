@@ -14,6 +14,7 @@ library(randomForest)
 # Load in dataset created by SQL query on January 11, 2021.
 # This dataset will be considered "static" and only run once for model creation.
 # Note, the below code uses the SQL column names; the shiny app will rename them in its code
+# SAVE STATIC DATASET
 sqidat <- read_csv("https://smcchecker.sccwrp.org/smc/sqi_rawdata") %>% 
   
   # group by and retain ID columns
@@ -30,28 +31,29 @@ sqidat <- read_csv("https://smcchecker.sccwrp.org/smc/sqi_rawdata") %>%
     labels = c('vla', 'la', 'pa', 'li')), 
     CSCI_rc = as.character(CSCI_rc)) %>%
   
-  # add ASCI classification column
-  mutate(ASCI_rc = cut(d_asci, breaks = c(-Inf, 0.70, 0.83, 0.93, Inf), 
+  # add ASCI classification column - Diatom MMI Theroux et al. 2020
+  mutate(ASCI_rc = cut(d_asci, breaks = c(-Inf, 0.75, 0.86, 0.94, Inf), 
     labels = c('vla', 'la', 'pa', 'li')),
     ASCI_rc = as.character(ASCI_rc)) %>%
   
   # add BPJ score column (based on Beck et al., 2019, Table 1)
-  mutate(Bio_BPJ = case_when(d_asci >= 0.93 & csci >= 0.92 ~ 5,
-    d_asci >= 0.93 & csci >= 0.79 & csci < 0.92 ~ 3,
-    d_asci >= 0.93 & csci >= 0.63 & csci < 0.79 ~ -1,
-    d_asci >= 0.93 & csci < 0.63 ~ -2,
-    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.92 ~ 3,
-    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.79 & csci < 0.92 ~ 2,
-    d_asci >= 0.83 & d_asci < 0.93 & csci >= 0.63 & csci < 0.79 ~ -2,
-    d_asci >= 0.83 & d_asci < 0.93 & csci < 0.63 ~ -4,
-    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.92 ~ -1,
-    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.79 & csci < 0.92 ~ -2,
-    d_asci >= 0.70 & d_asci < 0.83 & csci >= 0.63 & csci < 0.79 ~ -3,
-    d_asci >= 0.70 & d_asci < 0.83 & csci < 0.63 ~ -5,
-    d_asci < 0.70 & csci >= 0.92 ~ -2,
-    d_asci < 0.70 & csci >= 0.79 & csci < 0.92 ~ -4,
-    d_asci < 0.70 & csci >= 0.63 & csci < 0.79 ~ -5,
-    d_asci < 0.70 & csci < 0.63 ~ -6)) %>%
+  mutate(Bio_BPJ = case_when(d_asci >= 0.94 & csci >= 0.92 ~ 5,
+    d_asci >= 0.94 & csci >= 0.79 & csci < 0.92 ~ 3,
+    d_asci >= 0.94 & csci >= 0.63 & csci < 0.79 ~ -1,
+    d_asci >= 0.94 & csci < 0.63 ~ -2,
+    d_asci >= 0.86 & d_asci < 0.94 & csci >= 0.92 ~ 3,
+    d_asci >= 0.86 & d_asci < 0.94 & csci >= 0.79 & csci < 0.92 ~ 2,
+    d_asci >= 0.86 & d_asci < 0.94 & csci >= 0.63 & csci < 0.79 ~ -2,
+    d_asci >= 0.86 & d_asci < 0.94 & csci < 0.63 ~ -4,
+    d_asci >= 0.75 & d_asci < 0.86 & csci >= 0.92 ~ -1,
+    d_asci >= 0.75 & d_asci < 0.86 & csci >= 0.79 & csci < 0.92 ~ -2,
+    d_asci >= 0.75 & d_asci < 0.86 & csci >= 0.63 & csci < 0.79 ~ -3,
+    d_asci >= 0.75 & d_asci < 0.86 & csci < 0.63 ~ -5,
+    d_asci < 0.75 & csci >= 0.92 ~ -2,
+    d_asci < 0.75 & csci >= 0.79 & csci < 0.92 ~ -4,
+    d_asci < 0.75 & csci >= 0.63 & csci < 0.79 ~ -5,
+    d_asci < 0.75 & csci < 0.63 ~ -6,
+    T ~ -Inf)) %>%
   
   # add additional bio score column.
   mutate(bio_fp = ifelse(Bio_BPJ < 0, 1, 0))
@@ -60,16 +62,21 @@ sqidat <- read_csv("https://smcchecker.sccwrp.org/smc/sqi_rawdata") %>%
 set.seed(500)
 
 # want both passing and failing sites in calibration and validation datasets
+mydf.1 <- sqidat %>% 
+  group_by(masterid) %>%
+  sample_n(size=1)
+
 mydf.t<- sqidat %>% group_by(bio_fp)
 
 my.sites <- unique(mydf.t[, c('masterid', 'bio_fp')])
 
 sites.cal <- sample_frac(my.sites, 0.75, replace = F) %>% 
-  group_by('bio_fp')
+  ungroup() # undoing grouping by bio_fp from above
 
 mydf.t <- mydf.t %>% 
   mutate(SiteSet = ifelse(masterid %in% sites.cal$masterid, 'Cal', 'Val')) %>% 
   select(masterid, yr, SiteSet)
+# could also add column for used site/years
 
 # adds SiteSet column to dataset
 sqidat <- sqidat %>% 
@@ -94,6 +101,7 @@ wqglm <- glm(bio_fp ~ log10(0.1 + tn) + log10(0.01 + tp) + conductivity,
 # pHab
 habglm <- glm(bio_fp ~ hy + pct_safn + xcmg, 
   family = binomial('logit'), data = caldat)
+# pct_safn and xcmg are scores not raw metrics
 
 # save to project 
 save(wqglm, file = 'data/wqglm2021.RData', compress = 'xz')
