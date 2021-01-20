@@ -58,7 +58,7 @@ sqisql <- read_csv("https://smcchecker.sccwrp.org/smc/sqi_rawdata") %>%
   group_by(masterid, yr, cnty, watershed, regional_board, latitude, longitude, comid) %>% 
   
   # calculate the means of all indices measured multiple times
-  summarise(across(d_asci:ps, mean, na.rm= TRUE)) %>% 
+  summarise(across(d_asci:ps, mean)) %>% 
   
   # ALWAYS ungroup after grouping
   ungroup()
