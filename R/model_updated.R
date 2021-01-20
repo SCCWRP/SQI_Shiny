@@ -4,6 +4,8 @@
 
 # All of the below code has been taken from Marcus' original script found here: https://github.com/SCCWRP/SQI_Doc/blob/master/R/dat_proc.R
 
+# NOTE: REVISIONS TO THIS MODEL WERE HALTED DUE TO LACK OF SUFFICIENT DATA IN JANUARY 2021. THE BELOW MODELS MUST BE RECALIBRATED ONCE THE FULL DATASET NUMBERS >500 RECORDS. - HL
+
 # Load packages
 library(tidyverse)
 library(sf)
