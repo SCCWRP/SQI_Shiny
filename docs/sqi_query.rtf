@@ -1,0 +1,45 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2513
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww28300\viewh16840\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 SELECT lu_stations.masterid,\
+    date_part('year'::text, analysis_asci.sampledate) AS yr,\
+    analysis_asci.sampledate AS asci_sampledate,\
+    analysis_phab_ipi.sampledate AS ipi_sampledate,\
+    analysis_csci_core.sampledate AS csci_sampledate,\
+    analysis_chem_nutrients.sampledate AS nutrient_sampledate,\
+    lu_stations.county AS cnty,\
+    lu_stations.smcshed AS watershed,\
+    lu_stations.huc AS regional_board,\
+    lu_stations.latitude,\
+    lu_stations.longitude,\
+    tblcramindexandattributescores.visitdate AS cram_visitdate,\
+    analysis_asci.result AS d_asci,\
+    analysis_csci_core.csci,\
+    analysis_phab_ipi.ipi,\
+    analysis_phab_ipi.xcmg_score AS xcmg,\
+    analysis_phab_ipi.pct_safn_score AS pct_safn,\
+    analysis_phab_ipi.ev_flowhab_score AS ev_flowhab,\
+    analysis_phab_ipi.h_aqhab_score AS h_aqhab,\
+    analysis_phab_ipi.h_subnat_score AS h_subnat,\
+    analysis_chem_nutrients.total_n_mgl AS tn,\
+    analysis_chem_nutrients.total_p_mgl AS tp,\
+    analysis_combined_specificconductivity.result AS conductivity,\
+    tblcramindexandattributescores.bufferandlandscapecontext AS blc,\
+    tblcramindexandattributescores.bioticstructure AS bs,\
+    tblcramindexandattributescores.hydrology AS hy,\
+    tblcramindexandattributescores.indexscore AS indexscore_cram,\
+    tblcramindexandattributescores.physicalstructure AS ps,\
+    tblgismetrics.comid\
+   FROM (((((((lu_stations\
+     JOIN tblgismetrics ON (((tblgismetrics.masterid)::text = (lu_stations.masterid)::text)))\
+     JOIN analysis_asci ON (((lu_stations.stationid)::text = (analysis_asci.stationcode)::text)))\
+     JOIN analysis_phab_ipi ON ((((lu_stations.stationid)::text = (analysis_phab_ipi.stationcode)::text) AND (date_part('year'::text, analysis_asci.sampledate) = date_part('year'::text, analysis_phab_ipi.sampledate)))))\
+     JOIN analysis_csci_core ON ((((analysis_csci_core.stationcode)::text = (lu_stations.stationid)::text) AND (date_part('year'::text, analysis_phab_ipi.sampledate) = date_part('year'::text, analysis_csci_core.sampledate)))))\
+     JOIN analysis_chem_nutrients ON ((((analysis_chem_nutrients.stationcode)::text = (lu_stations.stationid)::text) AND (date_part('year'::text, analysis_chem_nutrients.sampledate) = date_part('year'::text, analysis_csci_core.sampledate)))))\
+     JOIN analysis_combined_specificconductivity ON (((analysis_combined_specificconductivity.stationcode = (lu_stations.stationid)::text) AND (date_part('year'::text, analysis_combined_specificconductivity.sampledate) = date_part('year'::text, analysis_chem_nutrients.sampledate)))))\
+     JOIN tblcramindexandattributescores ON ((((tblcramindexandattributescores.stationcode)::text = (lu_stations.stationid)::text) AND (date_part('year'::text, analysis_chem_nutrients.sampledate) = date_part('year'::text, tblcramindexandattributescores.visitdate)))))\
+  WHERE (((analysis_asci.metric)::text = 'ASCI'::text) AND ((analysis_asci.assemblage)::text = 'Diatom'::text) AND ((analysis_chem_nutrients.total_n_mgl_method)::text = ANY (ARRAY[('reported'::character varying)::text, ('calculated'::character varying)::text])) AND (analysis_combined_specificconductivity.analytename = 'SpecificConductivity'::text))}
