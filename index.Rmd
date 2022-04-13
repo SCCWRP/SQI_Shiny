@@ -31,7 +31,7 @@ library(shinyWidgets)
 library(here)
 library(shinycssloaders)
 library(RColorBrewer)
-# library(ShinyDash)
+library(shinydashboard)
 
 downloadButtonRmd <- function (outputId, label = "Download", class = NULL, ...)  {
   tags$a(id = outputId, class = paste("btn btn-default shiny-download-link", 
@@ -41,11 +41,15 @@ downloadButtonRmd <- function (outputId, label = "Download", class = NULL, ...) 
 
 # source functions and data
 source(here('R', 'funcs.R'))
-data(sqidat)
+# data(sqidat)
 data(sheds)
 data(cntys)
 data(rwqbs)
 data(cnstr)
+
+# testing new data
+data(sqidat_fordash)
+sqidat <- sqidat_fordash
 
 # numeric variable names
 numnms <- c('CSCI', 'ASCI', 'TN', 'TP', 'Cond', 'indexscore_cram', 'IPI', 'blc', 'bs', 'ps', 'hy', 'PCT_SAFN', 'H_AqHab', 'H_SubNat',  'Ev_FlowHab', 'XCMG')
@@ -385,7 +389,7 @@ output$map <- renderLeaflet({
 
   mapview(polys, fill = F, label = polys$pllb, homebutton = F, popup = NULL, legend = F) %>% 
     .@map %>% 
-    removeMouseCoordinates() %>%
+    # removeMouseCoordinates() %>% #this function no longer seems to be available in leaflet
     addCircleMarkers(
       data = sitedat, 
       layerId = ~MasterID,
